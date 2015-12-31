@@ -4,9 +4,11 @@ from hyperbit import config, crypto, inventory, message, network, objscanner, ob
 
 class Core(object):
     def __init__(self):
-        self.inv = inventory.Inventory()
+        self._db = database.db2
+        self.inv = inventory.Inventory(self._db)
         self.peers = network.PeerManager(self.inv)
-        self.wal = wallet.Wallet()
+        self.inv.on_add_object.append(self.peers.send_inv)
+        self.wal = wallet.Wallet(self._db)
         self.list = message.ThreadList()
         self.scanner = objscanner.Scanner(self.inv, self.wal)
         self.wal.on_add_identity.append(self.scan_identity)

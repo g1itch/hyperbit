@@ -1,6 +1,6 @@
 # Copyright 2015 HyperBit developers
 
-from hyperbit import base58, serialize, crypto, database
+from hyperbit import base58, serialize, crypto
 
 
 class Address(object):
@@ -45,7 +45,8 @@ class Address(object):
 
 
 class Profile2(object):
-    def __init__(self, address):
+    def __init__(self, db, address):
+        self._db = db
         self._address = address
 
     @property
@@ -54,17 +55,17 @@ class Profile2(object):
 
     @property
     def name(self):
-        for name, in database.db2.execute('select name from profiles where address = ?', (self._address.to_bytes(),)):
+        for name, in self._db.execute('select name from profiles where address = ?', (self._address.to_bytes(),)):
             return name
 
     @property
     def verkey(self):
-        for verkey, in database.db2.execute('select verkey from profiles where address = ?', (self._address.to_bytes(),)):
+        for verkey, in self._db.execute('select verkey from profiles where address = ?', (self._address.to_bytes(),)):
             return verkey
 
     @property
     def enckey(self):
-        for enckey, in database.db2.execute('select enckey from profiles where address = ?', (self._address.to_bytes(),)):
+        for enckey, in self._db.execute('select enckey from profiles where address = ?', (self._address.to_bytes(),)):
             return enckey
 
     def encrypt(self, data):
@@ -75,7 +76,8 @@ class Profile2(object):
 
 
 class Identity2(object):
-    def __init__(self, address):
+    def __init__(self, db, address):
+        self._db = db
         self._address = address
 
     @property
@@ -84,21 +86,21 @@ class Identity2(object):
 
     @property
     def profile(self):
-        return Profile2(self._address)
+        return Profile2(self._db, self._address)
 
     @property
     def name(self):
-        for name, in database.db2.execute('select name from identities where address = ?', (self._address.to_bytes(),)):
+        for name, in self._db.execute('select name from identities where address = ?', (self._address.to_bytes(),)):
             return name
 
     @property
     def sigkey(self):
-        for sigkey, in database.db2.execute('select sigkey from identities where address = ?', (self._address.to_bytes(),)):
+        for sigkey, in self._db.execute('select sigkey from identities where address = ?', (self._address.to_bytes(),)):
             return sigkey
 
     @property
     def deckey(self):
-        for deckey, in database.db2.execute('select deckey from identities where address = ?', (self._address.to_bytes(),)):
+        for deckey, in self._db.execute('select deckey from identities where address = ?', (self._address.to_bytes(),)):
             return deckey
 
     def sign(self, data):
@@ -109,9 +111,10 @@ class Identity2(object):
 
 
 class Wallet(object):
-    def __init__(self):
-        database.db2.execute('create table if not exists identities (address unique, name, sigkey, deckey)')
-        database.db2.execute('create table if not exists profiles (address unique, name, verkey, enckey)')
+    def __init__(self, db):
+        self._db = db
+        self._db.execute('create table if not exists identities (address unique, name, sigkey, deckey)')
+        self._db.execute('create table if not exists profiles (address unique, name, verkey, enckey)')
         self.on_add_identity = []
         self.on_remove_identity = []
 
@@ -141,24 +144,24 @@ class Wallet(object):
         enckey = crypto.priv_to_pub(deckey)
         ripe = crypto.bm160(verkey + enckey)
         address = Address(4, 1, ripe)
-        database.db2.execute('insert into identities (address, name, sigkey, deckey) values (?, ?, ?, ?)',
+        self._db.execute('insert into identities (address, name, sigkey, deckey) values (?, ?, ?, ?)',
                 (address.to_bytes(), name, sigkey, deckey))
-        database.db2.execute('insert into profiles (address, name, verkey, enckey) values (?, ?, ?, ?)',
+        self._db.execute('insert into profiles (address, name, verkey, enckey) values (?, ?, ?, ?)',
                 (address.to_bytes(), name, verkey, enckey))
-        identity = Identity2(address)
+        identity = Identity2(self._db, address)
         for func in self.on_add_identity:
             func(identity)
         return identity
 
     def get_identity(self, address):
-        return Identity2(Address.from_bytes(address))
+        return Identity2(self._db, Address.from_bytes(address))
 
     def add_identity(self, identity):
         address = identity.profile.address.to_bytes()
-        database.db2.execute('insert into identities (address, name, sigkey, deckey) values (?, ?, ?, ?)',
+        self._db.execute('insert into identities (address, name, sigkey, deckey) values (?, ?, ?, ?)',
                 (address, identity.name, identity.deckey, identity.sigkey))
         profile = identity.profile
-        database.db2.execute('insert into profiles (address, name, verkey, enckey) values (?, ?, ?, ?)',
+        self._db.execute('insert into profiles (address, name, verkey, enckey) values (?, ?, ?, ?)',
                 (address, '', profile.enckey, profile.verkey))
         self.identities.append(identity)
         for func in self.on_add_identity:
@@ -167,15 +170,15 @@ class Wallet(object):
     @property
     def identities(self):
         identities = []
-        for address, in database.db2.execute('select address from identities order by name, address'):
-            identities.append(Identity2(Address.from_bytes(address)))
+        for address, in self._db.execute('select address from identities order by name, address'):
+            identities.append(Identity2(self._db, Address.from_bytes(address)))
         return identities
 
     @property
     def profiles(self):
         profiles = []
-        for address, in database.db2.execute('select address from profiles order by name, address'):
-            profiles.append(Profile2(Address.from_bytes(address)))
+        for address, in self._db.execute('select address from profiles order by name, address'):
+            profiles.append(Profile2(self._db, Address.from_bytes(address)))
         return profiles
 
 

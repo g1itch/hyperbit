@@ -77,6 +77,10 @@ class PeerManager(object):
         asyncio.get_event_loop().create_task(self._run())
         asyncio.get_event_loop().create_task(self._run2())
 
+    def send_inv(self, object):
+        for conn in self._connections:
+            conn.send_inv(object)
+
     def get_best_peer(self):
         for host, in database.db2.execute('select host from peers where status = 0 order by tries asc, timestamp desc limit 1'):
             return self._peers[host]
@@ -250,7 +254,6 @@ class Connection2(object):
             inv = packet.Inv()
             inv.hashes = hashes[i:i+50000]
             self._c.send_packet(inv)
-        self.om.on_add_object.append(self.send_inv)
         self.remote_port = payload.src_port
         for func in self.on_connect:
             func()
@@ -304,8 +307,7 @@ class Connection2(object):
                     self.om.add_object(object)
             generic = yield  from self._c.recv_packet()
 
-        if self.got_version:
-            self.om.on_add_object.remove(self.send_inv)
-
         for func in self.on_disconnect:
             func()
+
+        self.peers._connections.remove(self)
