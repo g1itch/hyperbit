@@ -28,6 +28,12 @@ class Header(object):
         return s.data
 
 
+class Generic(object):
+    def __init__(self, command, data):
+        self.command = command
+        self.data = data
+
+
 class Version(object):
     def __init__(self, data=None):
         self.command = 'version'
