@@ -2,21 +2,11 @@
 
 HyperBit is an alternate client for the Bitmessage network. This is a very early release and should mainly be used for testing.
 
-If you have any questions or feature requests please join the `hyperbit` channel (BM-2cUXYTknxwZgp47DKayzKwNfipQRQCmb2m). If you find any bugs be sure to report them to BM-87ZQse4Ta4MLM9EKmfVUFA4jJUms1Fwnxws. 
+If you have any questions or feature requests please join the `hyperbit` channel (BM-2cUXYTknxwZgp47DKayzKwNfipQRQCmb2m). If you find any bugs be sure to report them here. I can also be reached at `BM-87ZQse4Ta4MLM9EKmfVUFA4jJUms1Fwnxws`.
 
-This version only supports channels (no person-to-person messages yet).
+The current version only supports channels (no person-to-person messages yet).
 
-# Windows
-
-Extract hyperbit.zip.
-
-Run hyperbit.exe.
-
-If you receive a Windows Firewall notification, make sure to allow access.
-
-# Running from source
-
-## Requirements
+# Requirements
 
 - Python 3.4.3 or later
 - PyQt5
@@ -25,7 +15,7 @@ If you receive a Windows Firewall notification, make sure to allow access.
 - appdirs
 - pysocks
 
-## Windows
+# Windows
 
 Install Python 3.4.4 from [https://www.python.org/downloads/release/python-344/](https://www.python.org/downloads/release/python-344/). Make sure to select "Add python.exe to Path".
 
@@ -41,7 +31,7 @@ Run HyperBit:
 
 If you receive a Windows Firewall notification, make sure to allow access.
 
-## Ubuntu
+# Ubuntu
 
 Install dependencies:
 
@@ -52,4 +42,7 @@ Run HyperBit:
 
     python3 /path/to/hyperbit/hyperbit.py
 
+# Mac
+
+Not officially supported but should work if you install the dependencies first. If you figure out how to do please let me know and I'll happily add the instructions.
 
