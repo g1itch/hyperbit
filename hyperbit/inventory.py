@@ -37,6 +37,9 @@ class Inventory(object):
         asyncio.get_event_loop().create_task(self._do_pow(object, trials, extra, timestamp))
 
     def add_object(self, object):
+        exists = self._db.execute('select count(*) from objects where hash = ?', (object.hash,)).fetchone()[0]
+        if exists:
+            return
         now = int(time.time())
         start = now
         end = now+28*24*60*60

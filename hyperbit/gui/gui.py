@@ -16,6 +16,13 @@ def resource_path(path):
     except:
         return os.path.join(os.path.dirname(__file__), path)
 
+class NetworkConfig(QDialog):
+    def __init__(self, core, parent=None):
+        super().__init__(parent)
+        self._core = core
+        uic.loadUi(resource_path('data/NetworkConfig.ui'), self)
+
+
 class DeterministicIdentity(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -35,8 +42,9 @@ class NewIdentityDialog(QDialog):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, peers, inv, wal, list, scanner):
+    def __init__(self, core, peers, inv, wal, list, scanner):
         super().__init__()
+        self._core = core
         self._peers = peers
         self._scanner = scanner
         self._inv = inv
@@ -73,6 +81,32 @@ class MainWindow(QMainWindow):
 
         self._connectionModel = models.ConnectionModel(peers)
         self.status_connections.setModel(self._connectionModel)
+
+        self.configureNetwork.clicked.connect(self._configure_network2)
+
+    def configure_network(self):
+        network_dialog = NetworkConfig(self._core, self)
+        if self._core.get_config('network.proxy') == 'tor':
+            network_dialog.raTor.setChecked(True)
+        network_dialog.liListen.setText(str(self._core.get_config('network.listen_port', 8444)))
+        network_dialog.liHost.setText(self._core.get_config('network.tor_host', '127.0.0.1'))
+        network_dialog.liPort.setText(str(self._core.get_config('network.tor_port', 9050)))
+        network_dialog.exec()
+        if network_dialog.result():
+            if network_dialog.raNone.isChecked():
+                self._core.set_config('network.proxy', 'disabled')
+            if network_dialog.raTor.isChecked():
+                self._core.set_config('network.proxy', 'tor')
+            self._core.set_config('network.listen_port', int(network_dialog.liListen.text()))
+            self._core.set_config('network.tor_host', network_dialog.liHost.text())
+            self._core.set_config('network.tor_port', int(network_dialog.liPort.text()))
+            return True
+        else:
+            return False
+
+    def _configure_network2(self):
+        if self.configure_network():
+            QMessageBox.warning(self, 'HyperBit', 'Changes will not be applied until restart of HyperBit')
 
     def _updateProgress(self):
         if self._scanner.max < 100:

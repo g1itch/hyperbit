@@ -3,8 +3,10 @@
 import asyncio
 import quamash
 import sys
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QDialog
 import _cffi_backend # for Pyinstaller
+import socks
+import socket
 
 from hyperbit import core2, database
 from hyperbit.gui import gui
@@ -22,7 +24,11 @@ def save():
 @asyncio.coroutine
 def run():
     core = core2.Core()
-    window = gui.MainWindow(peers=core.peers, inv=core.inv, wal=core.wal, list=core.list, scanner=core.scanner)
+    window = gui.MainWindow(core, peers=core.peers, inv=core.inv, wal=core.wal, list=core.list, scanner=core.scanner)
+    if not core.get_config('network.proxy'):
+        if not window.configure_network():
+            return
+    asyncio.get_event_loop().create_task(core.run())
     window.show()
 
 asyncio.get_event_loop().create_task(run())

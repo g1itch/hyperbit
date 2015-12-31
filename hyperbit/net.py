@@ -38,7 +38,7 @@ class Connection(object):
     def send(self, data):
         try:
             self._s.send(data)
-        except BrokenPipeError:
+        except (OSError, BrokenPipeError):
             pass
 
     @asyncio.coroutine

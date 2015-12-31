@@ -5,6 +5,8 @@ import enum
 import ipaddress
 import os
 import time
+import socket
+import socks
 
 from hyperbit import config, crypto, database, net, packet
 
@@ -56,7 +58,8 @@ class KnownPeer(object):
 
 
 class PeerManager(object):
-    def __init__(self, inv):
+    def __init__(self, core, inv):
+        self._core = core
         database.db2.execute('create table if not exists peers (timestamp, services, host unique, port, status, tries)')
         database.db2.execute('update peers set status = 0')
         self._peers = dict()
@@ -74,12 +77,10 @@ class PeerManager(object):
         for peer in config.KNOWN_PEERS:
             self.new_peer(0, 1, peer[0], peer[1], False)
 
-        asyncio.get_event_loop().create_task(self._run())
-        asyncio.get_event_loop().create_task(self._run2())
-
     def send_inv(self, object):
         for conn in self._connections:
-            conn.send_inv(object)
+            if conn.got_version:
+                conn.send_inv(object)
 
     def get_best_peer(self):
         for host, in database.db2.execute('select host from peers where status = 0 order by tries asc, timestamp desc limit 1'):
@@ -120,19 +121,15 @@ class PeerManager(object):
         return database.db2.execute('select count(*) from peers where status = 1 or status = 2').fetchone()[0]
 
     @asyncio.coroutine
-    def _run(self):
-        l = net.Listener(config.LISTEN_PORT)
-        while True:
-            connection = yield from l.accept()
-            c = PacketConnection(connection)
-            conn = Connection2(om=self.om, peers=self, connection=c)
-            self._connections.append(conn)
-            conn.on_connect.append(lambda: self._on_connect(connection.remote_host.packed))
-            conn.on_disconnect.append(lambda: self._on_disconnect(connection.remote_host.packed))
-            asyncio.get_event_loop().create_task(conn.run())
-
-    @asyncio.coroutine
-    def _run2(self):
+    def run(self):
+        if self._core.get_config('network.proxy') == 'tor':
+            if self._core.get_config('network.proxy') == 'tor':
+                host = self._core.get_config('network.tor_host')
+                port = self._core.get_config('network.tor_port')
+                socks.set_default_proxy(socks.PROXY_TYPE_SOCKS5, host, port, True)
+                socket.socket = socks.socksocket
+        else:
+            asyncio.get_event_loop().create_task(self._run2())
         while True:
             if self.count_connected() < config.CONNECTION_COUNT\
                     and self.count_pending_and_connected() < self.count_all():
@@ -141,6 +138,18 @@ class PeerManager(object):
                     and self.count_pending_and_connected() < self.count_all():
                 self._open_one()
             yield from asyncio.sleep(10)
+
+    @asyncio.coroutine
+    def _run2(self):
+        l = net.Listener(self._core.get_config('network.listen_port', config.LISTEN_PORT))
+        while True:
+            connection = yield from l.accept()
+            c = PacketConnection(connection)
+            conn = Connection2(om=self.om, peers=self, connection=c)
+            self._connections.append(conn)
+            conn.on_connect.append(lambda: self._on_connect(connection.remote_host.packed))
+            conn.on_disconnect.append(lambda: self._on_disconnect(connection.remote_host.packed))
+            asyncio.get_event_loop().create_task(conn.run())
 
     def _on_connect(self, host):
         self._peers[host].set_connected()

@@ -1,12 +1,15 @@
 # Copyright 2015 HyperBit developers
 
+import asyncio
+
 from hyperbit import config, crypto, inventory, message, network, objscanner, objtypes, wallet, database
 
 class Core(object):
     def __init__(self):
         self._db = database.db2
+        self._db.execute('create table if not exists config (id unique, value)')
         self.inv = inventory.Inventory(self._db)
-        self.peers = network.PeerManager(self.inv)
+        self.peers = network.PeerManager(self, self.inv)
         self.inv.on_add_object.append(self.peers.send_inv)
         self.wal = wallet.Wallet(self._db)
         self.list = message.ThreadList()
@@ -15,16 +18,24 @@ class Core(object):
         self.inv.on_add_object.append(self.scan_object)
         self.scanner.on_scan_item.append(self.do_scan)
 
+    def get_config(self, key, default=None):
+        return self._db.execute('select coalesce(min(value), ?) from config where id = ?', (default, key)).fetchone()[0]
+
+    def set_config(self, key, value):
+        self._db.execute('insert or replace into config (id, value) values (?, ?)', (key, value))
+
+    @asyncio.coroutine
+    def run(self):
+        yield from self.peers.run()
+
     def scan_object(self, object):
         self.scanner.scan(object.hash, None)
         for identity in self.wal.identities:
             self.scanner.scan(object.hash, identity)
-            #check_object_identity(object, identity)
 
     def scan_identity(self, identity):
         for hash in self.inv.get_hashes():
             self.scanner.scan(hash, identity)
-            #check_object_identity(object, identity)
 
     def do_scan(self, object, identity):
         if identity is None:
@@ -92,31 +103,3 @@ class Core(object):
                                 comment = thread.new_comment(parent_text, b'', body)
                             parent_text = body
                         comment.creator = creator
-
-                    """
-                    for t in list.threads:
-                        if t.subject == subject:
-                            thread = t
-                            break
-                    else:
-                        thread = message.Thread(identity, subject)
-                        list.add_thread(thread)
-                    if reply:
-                        bodies = body.split('\n'+54*'-'+'\n')
-                        for i, body in enumerate(reversed(bodies)):
-                            for c in thread.bodies:
-                                if c.text == body:
-                                    comment = c
-                                    break
-                            else:
-                                comment = message.Comment(body, True)
-                                thread.insert_comment(len(thread.bodies), comment)
-                            if i + 1 == len(bodies):
-                                comment.set_ghost(False)
-                    else:
-                        if len(thread.bodies) > 0 and thread.bodies[0].text == body:
-                            thread.bodies[0].set_ghost(False)
-                        else:
-                            comment = message.Comment(body, False)
-                            thread.insert_comment(0, comment)
-                    """
