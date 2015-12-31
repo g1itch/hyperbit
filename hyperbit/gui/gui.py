@@ -35,10 +35,10 @@ class JoinChannel(QDialog):
         uic.loadUi(resource_path('data/JoinChannel.ui'), self)
 
 
-class NewIdentityDialog(QDialog):
+class NewUserDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        uic.loadUi(resource_path('data/NewIdentity.ui'), self)
+        uic.loadUi(resource_path('data/NewUserDialog.ui'), self)
 
 
 class MainWindow(QMainWindow):
@@ -75,9 +75,11 @@ class MainWindow(QMainWindow):
         self._channelModel = models.IdentityModel(wal)
         self.channels_list.setModel(self._channelModel)
         self.channels_join.clicked.connect(self._on_channel_join_clicked)
+        self.channels_list.contextMenuEvent = self.show_context_menu
         self.comboFrom.setModel(self._channelModel)
         self.comboTo.setModel(self._channelModel)
         self.channels_send.clicked.connect(self._on_channel_send_clicked)
+        self.buttonNewUser.clicked.connect(self._create_new_user)
 
         self._connectionModel = models.ConnectionModel(peers)
         self.status_connections.setModel(self._connectionModel)
@@ -86,6 +88,16 @@ class MainWindow(QMainWindow):
 
         self.comboFrom2.setModel(self._channelModel)
 
+    def show_context_menu(self, event):
+        row = self.channels_list.indexAt(event.pos()).row()
+        identity = self._channelModel.get_identity_by_row(row)
+        if row < 0:
+            return
+        menu = QMenu()
+        def copy_address():
+            qApp.clipboard().setText(identity.profile.address.to_str())
+        menu.addAction('Copy address to clipboard').triggered.connect(copy_address)
+        menu.exec(self.mapToGlobal(event.pos()))
 
     def configure_network(self):
         network_dialog = NetworkConfig(self._core, self)
@@ -149,7 +161,8 @@ class MainWindow(QMainWindow):
                 cursor.insertImage(identicon.get(comment.creator, 8).toImage())
                 cursor.setCharFormat(charFormat)
                 if comment.creator:
-                    cursor.insertText(' '+wallet.Address.from_bytes(comment.creator).to_str())
+                    address = wallet.Address.from_bytes(comment.creator)
+                    cursor.insertText(' '+self._wal.names.get(address.ripe))
                 else:
                     cursor.insertText(' <unknown>')
                 blockFormat = QTextBlockFormat()
@@ -159,6 +172,13 @@ class MainWindow(QMainWindow):
                 cursor.insertText(comment.text.strip())
                 first = False
             thread.unread = 0
+
+    def _create_new_user(self):
+        dialog = NewUserDialog()
+        dialog.exec()
+        if dialog.result():
+            name = dialog.name.text()
+            self._wal.new_random(name)
 
     def _on_channel_join_clicked(self):
         dialog = JoinChannel(self)

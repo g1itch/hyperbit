@@ -91,16 +91,14 @@ class IdentityModel(QAbstractTableModel):
         else:
             return None
 
-    def data(self, index, role=None):
-        if role == Qt.DisplayRole:
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole or role == Qt.EditRole:
             identity = self.identities[index.row()]
             column = index.column()
             if column == 0:
-                return identity.name
+                return self.wal.names.get(identity.profile.address.ripe)
             elif column == 1:
                 return identity.profile.address.to_str()
-            elif column == 2:
-                return ''
         elif role == Qt.DecorationRole:
             identity = self.identities[index.row()]
             column = index.column()
@@ -110,6 +108,25 @@ class IdentityModel(QAbstractTableModel):
                 return None
         else:
             return None
+
+    def flags(self, index):
+        column = index.column()
+        if column == 0:
+            return Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
+        elif column == 1:
+            return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+    def setData(self, index, value, role=Qt.EditRole):
+        if role == Qt.DisplayRole or role == Qt.EditRole:
+            identity = self.identities[index.row()]
+            column = index.column()
+            if column == 0:
+                self.wal.names.set(identity.profile.address.ripe, value)
+                return True
+            elif column == 1:
+                return False
+        else:
+            return False
 
     def get_identity(self, index):
         return self.identities[index.row()]

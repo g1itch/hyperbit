@@ -93,6 +93,10 @@ class Identity2(object):
         for name, in self._db.execute('select name from identities where address = ?', (self._address.to_bytes(),)):
             return name
 
+    @name.setter
+    def name(self, value):
+        self._db.execute('update identities set name = ? where address = ?', (value, self._address.to_bytes(),))
+
     @property
     def sigkey(self):
         for sigkey, in self._db.execute('select sigkey from identities where address = ?', (self._address.to_bytes(),)):
@@ -117,6 +121,7 @@ class Wallet(object):
         self._db.execute('create table if not exists profiles (address unique, name, verkey, enckey)')
         self.on_add_identity = []
         self.on_remove_identity = []
+        self.names = Names(self._db)
 
     def new_deterministic(self, name, text):
         for i in range(0, 2**64, 2):
@@ -143,11 +148,12 @@ class Wallet(object):
         verkey = crypto.priv_to_pub(sigkey)
         enckey = crypto.priv_to_pub(deckey)
         ripe = crypto.bm160(verkey + enckey)
+        self.names.set(ripe, name)
         address = Address(4, 1, ripe)
-        self._db.execute('insert into identities (address, name, sigkey, deckey) values (?, ?, ?, ?)',
-                (address.to_bytes(), name, sigkey, deckey))
-        self._db.execute('insert into profiles (address, name, verkey, enckey) values (?, ?, ?, ?)',
-                (address.to_bytes(), name, verkey, enckey))
+        self._db.execute('insert into identities (address, name, sigkey, deckey) values (?, "", ?, ?)',
+                (address.to_bytes(), sigkey, deckey))
+        self._db.execute('insert into profiles (address, name, verkey, enckey) values (?, "", ?, ?)',
+                (address.to_bytes(), verkey, enckey))
         identity = Identity2(self._db, address)
         for func in self.on_add_identity:
             func(identity)
@@ -170,14 +176,14 @@ class Wallet(object):
     @property
     def identities(self):
         identities = []
-        for address, in self._db.execute('select address from identities order by name, address'):
+        for address, in self._db.execute('select address from identities'):
             identities.append(Identity2(self._db, Address.from_bytes(address)))
         return identities
 
     @property
     def profiles(self):
         profiles = []
-        for address, in self._db.execute('select address from profiles order by name, address'):
+        for address, in self._db.execute('select address from profiles'):
             profiles.append(Profile2(self._db, Address.from_bytes(address)))
         return profiles
 
@@ -208,4 +214,45 @@ class ProfileCache(object):
             func(profile)
 
 
+class Names(object):
+    def __init__(self, db):
+        self._db = db
+        if not self._db.execute('select 1 from sqlite_master where name = "names"').fetchone():
+            self._db.execute('create table names (ripe unique, name)')
+            self._db.execute('insert into names (ripe, name) select substr(address, 3), name from identities')
+        self._on_changed = dict()
+        self._on_changed_all = list()
 
+    def on_changed_add(self, ripe, callback):
+        if not ripe in self._on_changed:
+            self._on_changed[ripe] = list()
+        self._on_changed[ripe].append(callback)
+
+    def on_changed_remove(self, ripe, callback):
+        self._on_changed[ripe].remove(callback)
+        if not self._on_changed[ripe]:
+            del self._on_changed[ripe]
+
+    def on_changed_all_add(self, callback):
+        self._on_changed_all.append(callback)
+
+    def on_changed_all_remove(self, callback):
+        self._on_changed_all.remove(callback)
+
+    def set(self, ripe, name):
+        if not name or name == Address(4, 1, ripe).to_str():
+            self._db.execute('delete from names where ripe = ?', (ripe,))
+        else:
+            self._db.execute('replace into names (ripe, name) values (?, ?)', (ripe, name))
+        if ripe in self._on_changed:
+            for func in self._on_changed[ripe]:
+                func()
+        for func in self._on_changed_all:
+            func()
+
+    def get(self, ripe):
+        row = self._db.execute('select name from names where ripe = ?', (ripe,)).fetchone()
+        if row:
+            return row[0]
+        else:
+            return Address(4, 1, ripe).to_str()
