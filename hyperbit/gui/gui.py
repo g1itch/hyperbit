@@ -5,27 +5,33 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5 import uic
 import os.path
+import sys
 
 from hyperbit import wallet, helper
 from hyperbit.gui import models, identicon
 
+def resource_path(path):
+    try:
+        return os.path.join(sys._MEIPASS, path)
+    except:
+        return os.path.join(os.path.dirname(__file__), path)
 
 class DeterministicIdentity(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        uic.loadUi(os.path.join(os.path.dirname(__file__), 'DeterministicIdentity.ui'), self)
+        uic.loadUi(resource_path('data/DeterministicIdentity.ui'), self)
 
 
 class JoinChannel(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        uic.loadUi(os.path.join(os.path.dirname(__file__), 'JoinChannel.ui'), self)
+        uic.loadUi(resource_path('data/JoinChannel.ui'), self)
 
 
 class NewIdentityDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        uic.loadUi(os.path.join(os.path.dirname(__file__), 'NewIdentity.ui'), self)
+        uic.loadUi(resource_path('data/NewIdentity.ui'), self)
 
 
 class MainWindow(QMainWindow):
@@ -36,7 +42,7 @@ class MainWindow(QMainWindow):
         self._inv = inv
         self._wal = wal
         self._list = list
-        uic.loadUi(os.path.join(os.path.dirname(__file__), 'MainWindow.ui'), self)
+        uic.loadUi(resource_path('data/MainWindow.ui'), self)
         peers.on_stats_changed.append(self.on_stats_changed)
         inv.on_stats_changed.append(self.on_stats_changed)
         self.on_stats_changed()
