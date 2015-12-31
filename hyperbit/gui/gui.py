@@ -75,14 +75,17 @@ class MainWindow(QMainWindow):
         self._channelModel = models.IdentityModel(wal)
         self.channels_list.setModel(self._channelModel)
         self.channels_join.clicked.connect(self._on_channel_join_clicked)
+        self.comboFrom.setModel(self._channelModel)
+        self.comboTo.setModel(self._channelModel)
         self.channels_send.clicked.connect(self._on_channel_send_clicked)
-        self.channels_list.selectionModel().selectionChanged.connect(self._channels_list_selectionChanged)
-        self.channels_send.setEnabled(False)
 
         self._connectionModel = models.ConnectionModel(peers)
         self.status_connections.setModel(self._connectionModel)
 
         self.configureNetwork.clicked.connect(self._configure_network2)
+
+        self.comboFrom2.setModel(self._channelModel)
+
 
     def configure_network(self):
         network_dialog = NetworkConfig(self._core, self)
@@ -123,6 +126,11 @@ class MainWindow(QMainWindow):
         else:
             index = indexes[0]
             thread = self._threadModel.get_thread(index)
+            for i in range(self._channelModel.rowCount()):
+                identity = self._channelModel.get_identity_by_row(i)
+                if identity.profile.address.to_bytes() == thread.channel:
+                    self.comboFrom2.setCurrentIndex(i)
+                    break
             self.messages.setPlainText('')
             cursor = self.messages.textCursor()
             format = QTextCharFormat()
@@ -132,19 +140,23 @@ class MainWindow(QMainWindow):
             first = True
             cursor.insertText(thread.subject.strip())
             for comment in thread.comments:
-                if not first:
-                    charFormat = QTextCharFormat()
-                    charFormat.setFontPointSize(2.0)
-                    blockFormat = QTextBlockFormat()
-                    blockFormat.setBackground(QColor(0x66, 0x99, 0x99))
-                    cursor.insertBlock(blockFormat, charFormat)
                 charFormat = QTextCharFormat()
                 blockFormat = QTextBlockFormat()
                 blockFormat.setTopMargin(3.0)
                 blockFormat.setBottomMargin(3.0)
+                blockFormat.setBackground(QColor(0xdd, 0xdd, 0xdd))
                 cursor.insertBlock(blockFormat, charFormat)
                 cursor.insertImage(identicon.get(comment.creator, 8).toImage())
-                cursor.insertText(' ' + comment.text.strip())
+                cursor.setCharFormat(charFormat)
+                if comment.creator:
+                    cursor.insertText(' '+wallet.Address.from_bytes(comment.creator).to_str())
+                else:
+                    cursor.insertText(' <unknown>')
+                blockFormat = QTextBlockFormat()
+                blockFormat.setTopMargin(3.0)
+                blockFormat.setBottomMargin(3.0)
+                cursor.insertBlock(blockFormat, charFormat)
+                cursor.insertText(comment.text.strip())
                 first = False
             thread.unread = 0
 
@@ -155,19 +167,19 @@ class MainWindow(QMainWindow):
             text = dialog.passphrase.text()
             self._wal.new_deterministic('[chan] '+text, text)
 
-    def _channels_list_selectionChanged(self, selection):
-        indexes = selection.indexes()
-        if len(indexes) == 0:
-            self.channels_send.setEnabled(False)
-        else:
-            self.channels_send.setEnabled(True)
-
     def _on_channel_send_clicked(self):
-        if self.channels_message.toPlainText() == '':
+        if self.comboFrom.currentIndex() < 0:
             return
-        index = self.channels_list.selectionModel().selection().indexes()[0]
-        src = self._channelModel.get_identity(index)
-        dst = src.profile
+        if self.comboTo.currentIndex() < 0:
+            return
+        if self.channels_subject.text().strip() == '':
+            return
+        if self.channels_message.toPlainText().strip() == '':
+            return
+        index = self.comboFrom.currentIndex()
+        src = self._channelModel.get_identity_by_row(index)
+        index2 = self.comboTo.currentIndex()
+        dst = self._channelModel.get_identity_by_row(index2).profile
         subject = self.channels_subject.text()
         body = self.channels_message.toPlainText()
         message = helper.create_message(subject, body)
@@ -176,12 +188,15 @@ class MainWindow(QMainWindow):
         self.channels_message.setPlainText('')
 
     def _on_messages_reply_clicked(self):
-        if self.messages_message.toPlainText() == '':
+        if self.comboFrom2.currentIndex() < 0:
+            return
+        if self.messages_message.toPlainText().strip() == '':
             return
         index = self.threads.selectionModel().selection().indexes()[0]
         thread = self._threadModel.get_thread(index)
-        src = self._wal.get_identity(thread.channel)
-        dst = src.profile
+        dst = self._wal.get_identity(thread.channel).profile
+        index2 = self.comboFrom2.currentIndex()
+        src = self._channelModel.get_identity_by_row(index2)
         subject = thread.subject
         body = self.messages_message.toPlainText()
         parent = thread.longest

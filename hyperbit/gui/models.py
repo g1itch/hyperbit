@@ -114,6 +114,9 @@ class IdentityModel(QAbstractTableModel):
     def get_identity(self, index):
         return self.identities[index.row()]
 
+    def get_identity_by_row(self, row):
+        return self.identities[row]
+
 
 class ObjectModel(QAbstractTableModel):
     def __init__(self, inv):
