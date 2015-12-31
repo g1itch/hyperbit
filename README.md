@@ -23,6 +23,7 @@ If you receive a Windows Firewall notification, make sure to allow access.
 - quamash (requires libffi)
 - cryptography (requires OpenSSL)
 - appdirs
+- pysocks
 
 ## Windows
 
@@ -32,7 +33,7 @@ Install the PyQt5 binary package from [https://riverbankcomputing.com/software/p
 
 Open a command prompt and run this command:
 
-    pip install quamash cryptography appdirs
+    pip install quamash cryptography appdirs pysocks
 
 Run HyperBit:
 
@@ -45,7 +46,7 @@ If you receive a Windows Firewall notification, make sure to allow access.
 Install dependencies:
 
     sudo apt-get install python3-pip python3-pyqt5 libffi-dev libssl-dev
-    sudo pip3 install quamash cryptography appdirs
+    sudo pip3 install quamash cryptography appdirs pysocks
 
 Run HyperBit:
 
