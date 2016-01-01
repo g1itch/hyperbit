@@ -15,6 +15,13 @@ The current version only supports channels (no person-to-person messages yet).
 - appdirs
 - pysocks
 
+# Screenshots
+
+![](../hyperbit-screenshots/linux/1.png)
+![](../hyperbit-screenshots/windows/2.png)
+![](../hyperbit-screenshots/linux/3.png)
+![](../hyperbit-screenshots/linux/4.png)
+
 # Windows
 
 Install Python 3.4.4 from [https://www.python.org/downloads/release/python-344/](https://www.python.org/downloads/release/python-344/). Make sure to select "Add python.exe to Path".
@@ -31,12 +38,12 @@ Run HyperBit:
 
 If you receive a Windows Firewall notification, make sure to allow access.
 
-# Ubuntu
+# Debian / Ubuntu
 
 Install dependencies:
 
-    sudo apt-get install python3-pip python3-pyqt5 libffi-dev libssl-dev
-    sudo pip3 install quamash cryptography appdirs pysocks
+    apt-get install python3-pip python3-pyqt5 libffi-dev libssl-dev
+    pip3 install quamash cryptography appdirs pysocks
 
 Run HyperBit:
 
