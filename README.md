@@ -17,10 +17,10 @@ The current version only supports channels (no person-to-person messages yet).
 
 # Screenshots
 
-![](../hyperbit-screenshots/linux/1.png)
-![](../hyperbit-screenshots/windows/2.png)
-![](../hyperbit-screenshots/linux/3.png)
-![](../hyperbit-screenshots/linux/4.png)
+![](https://raw.githubusercontent.com/mirrorwish/hyperbit-screenshots/master/linux/1.png)
+![](https://raw.githubusercontent.com/mirrorwish/hyperbit-screenshots/master/windows/2.png)
+![](https://raw.githubusercontent.com/mirrorwish/hyperbit-screenshots/master/linux/3.png)
+![](https://raw.githubusercontent.com/mirrorwish/hyperbit-screenshots/master/linux/4.png)
 
 # Windows
 
