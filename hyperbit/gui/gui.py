@@ -88,6 +88,15 @@ class MainWindow(QMainWindow):
 
         self.comboFrom2.setModel(self._channelModel)
 
+        self.about.clicked.connect(lambda: QMessageBox.about(self, 'HyperBit',
+                'HyperBit is a client for the Bitmessage network.\n'
+                '\n'
+                'Copyright 2015-2016 HyperBit developers\n'
+                'Distributed under the MIT license\n'
+                '\n'
+                'Please join the hyperbit channel'))
+        self.aboutQt.clicked.connect(lambda: QMessageBox.aboutQt(self))
+
     def show_context_menu(self, event):
         row = self.channels_list.indexAt(event.pos()).row()
         identity = self._channelModel.get_identity_by_row(row)
