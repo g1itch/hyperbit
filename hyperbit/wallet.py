@@ -89,12 +89,12 @@ class Identity2(object):
         return Profile2(self._db, self._address)
 
     @property
-    def name(self):
+    def type(self):
         for name, in self._db.execute('select name from identities where address = ?', (self._address.to_bytes(),)):
             return name
 
-    @name.setter
-    def name(self, value):
+    @type.setter
+    def type(self, value):
         self._db.execute('update identities set name = ? where address = ?', (value, self._address.to_bytes(),))
 
     @property
@@ -122,6 +122,13 @@ class Wallet(object):
         self.on_add_identity = []
         self.on_remove_identity = []
         self.names = Names(self._db)
+
+        for identity in self.identities:
+            if isinstance(identity.type, str):
+                if self.names.get(identity.profile.address.ripe)[0:6] == '[chan]':
+                    identity.type = 1
+                else:
+                    identity.type = 0
 
     def new_deterministic(self, name, text):
         for i in range(0, 2**64, 2):
