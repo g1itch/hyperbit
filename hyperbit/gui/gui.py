@@ -7,7 +7,7 @@ from PyQt5 import uic
 import os.path
 import sys
 
-from hyperbit import wallet, helper
+from hyperbit import base58, wallet, helper
 from hyperbit.gui import models, identicon
 
 def resource_path(path):
@@ -177,8 +177,14 @@ class MainWindow(QMainWindow):
         dialog = NewUserDialog()
         dialog.exec()
         if dialog.result():
-            name = dialog.name.text()
-            self._wal.new_random(name)
+            if dialog.random.isChecked():
+                name = dialog.name.text()
+                self._wal.new_random(name)
+            elif dialog.wif.isChecked():
+                name = dialog.name.text()
+                sigkey = base58.decode_wif(dialog.sigkey.text())
+                deckey = base58.decode_wif(dialog.deckey.text())
+                self._wal.new_identity(name, sigkey, deckey)
 
     def _on_channel_join_clicked(self):
         dialog = JoinChannel(self)

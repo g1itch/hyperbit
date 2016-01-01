@@ -138,6 +138,10 @@ def bm160(data):
     sha = hashlib.sha512(data).digest()
     return hashlib.new('ripemd160', sha).digest()
 
+def sha256d(data):
+    sha = hashlib.sha256(data).digest()
+    return hashlib.sha256(sha).digest()
+
 def sha512(data):
     return hashlib.sha512(data).digest()
 

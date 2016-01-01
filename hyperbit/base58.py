@@ -1,9 +1,9 @@
 # Copyright 2015 HyperBit developers
 
-import hashlib
+from hyperbit import crypto
 
-def encode(data, prepend_bm=False):
-    data += hashlib.sha512(hashlib.sha512(data).digest()).digest()[:4]
+
+def encode_raw(data):
     map = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     result = ''
     number = int.from_bytes(data, byteorder='big', signed=False)
@@ -11,12 +11,10 @@ def encode(data, prepend_bm=False):
         result = map[number%len(map)] + result
         number //= len(map)
     result = (len(data)-len(data.lstrip(b'\x00')))*map[0] + result
-    if prepend_bm:
-        result = 'BM-' + result
     return result
 
 
-def decode(chars):
+def decode_raw(chars):
     map = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     number = 0
     chars = chars.strip()
@@ -26,6 +24,33 @@ def decode(chars):
         number = len(map) * number + map.index(char)
     data = number.to_bytes((number.bit_length()+7)//8, byteorder='big', signed=False)
     data = (len(chars)-len(chars.lstrip(map[0])))*b'\x00' + data
-    checksum = hashlib.sha512(hashlib.sha512(data[:-4]).digest()).digest()[:4]
+    return data
+
+
+def encode(data, prepend_bm=False):
+    data += crypto.sha512d(data)[:4]
+    text = encode_raw(data)
+    if prepend_bm:
+        text = 'BM-'+text
+    return text
+
+
+def decode(chars):
+    data = decode_raw(chars)
+    checksum = crypto.sha512d(data[:-4])[:4]
     assert checksum == data[-4:]
     return data[:-4]
+
+
+def encode_wif(data):
+    data = b'\x80'+data
+    data = data+crypto.sha256d(data)[:4]
+    return encode_raw(data)
+
+
+def decode_wif(chars):
+    data = decode_raw(chars)
+    checksum = crypto.sha256d(data[:-4])[:4]
+    assert checksum == data[-4:]
+    assert data[0:1] == b'\x80'
+    return data[1:-4]

@@ -20,14 +20,14 @@
       <widget class="QLineEdit" name="name"/>
      </item>
      <item row="2" column="0">
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="labelName">
        <property name="text">
         <string>Name:</string>
        </property>
       </widget>
      </item>
      <item row="3" column="0" colspan="2">
-      <widget class="QRadioButton" name="radioButton">
+      <widget class="QRadioButton" name="random">
        <property name="text">
         <string>Random</string>
        </property>
@@ -37,31 +37,28 @@
       </widget>
      </item>
      <item row="4" column="0" colspan="2">
-      <widget class="QRadioButton" name="radioButton_2">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
+      <widget class="QRadioButton" name="wif">
        <property name="text">
-        <string>From WIF (not yet implemented)</string>
+        <string>From WIF</string>
        </property>
       </widget>
      </item>
      <item row="5" column="1">
-      <widget class="QLineEdit" name="lineEdit">
+      <widget class="QLineEdit" name="sigkey">
        <property name="enabled">
         <bool>false</bool>
        </property>
       </widget>
      </item>
      <item row="6" column="1">
-      <widget class="QLineEdit" name="lineEdit_2">
+      <widget class="QLineEdit" name="deckey">
        <property name="enabled">
         <bool>false</bool>
        </property>
       </widget>
      </item>
      <item row="5" column="0">
-      <widget class="QLabel" name="label_2">
+      <widget class="QLabel" name="labelSigkey">
        <property name="enabled">
         <bool>false</bool>
        </property>
@@ -71,7 +68,7 @@
       </widget>
      </item>
      <item row="6" column="0">
-      <widget class="QLabel" name="label_3">
+      <widget class="QLabel" name="labelDeckey">
        <property name="enabled">
         <bool>false</bool>
        </property>
@@ -126,9 +123,9 @@
    </hints>
   </connection>
   <connection>
-   <sender>radioButton_2</sender>
+   <sender>wif</sender>
    <signal>toggled(bool)</signal>
-   <receiver>label_3</receiver>
+   <receiver>labelDeckey</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -142,9 +139,9 @@
    </hints>
   </connection>
   <connection>
-   <sender>radioButton_2</sender>
+   <sender>wif</sender>
    <signal>toggled(bool)</signal>
-   <receiver>label_2</receiver>
+   <receiver>labelSigkey</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -158,9 +155,9 @@
    </hints>
   </connection>
   <connection>
-   <sender>radioButton_2</sender>
+   <sender>wif</sender>
    <signal>toggled(bool)</signal>
-   <receiver>lineEdit</receiver>
+   <receiver>sigkey</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -174,9 +171,9 @@
    </hints>
   </connection>
   <connection>
-   <sender>radioButton_2</sender>
+   <sender>wif</sender>
    <signal>toggled(bool)</signal>
-   <receiver>lineEdit_2</receiver>
+   <receiver>deckey</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
