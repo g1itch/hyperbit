@@ -18,7 +18,7 @@ class Address(object):
         s = serialize.Deserializer(data)
         version = s.vint()
         stream = s.vint()
-        ripe = s.data.rjust(20, b'\x00')
+        ripe = s.bytes().rjust(20, b'\x00')
         return cls(version, stream, ripe)
 
     def to_str(self):

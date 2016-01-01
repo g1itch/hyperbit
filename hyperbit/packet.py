@@ -5,21 +5,22 @@ import time
 from hyperbit import config, pow, serialize, crypto
 
 class Header(object):
-    def __init__(self, data=None):
-        if data is None:
-            self.magic = 0xe9beb4d9
-            self.command = ''
-            self.length = 0
-            self.checksum = bytes.fromhex('cf83e135')
-        else:
-            s = serialize.Deserializer(data)
-            self.magic = s.uint(4)
-            self.command = s.str(12).rstrip('\0')
-            self.length = s.uint(4)
-            self.checksum = s.bytes(4)
+    def __init__(self, magic, command, length, checksum):
+        self.magic = magic
+        self.command = command
+        self.length = length
+        self.checksum = checksum
 
-    @property
-    def data(self):
+    @classmethod
+    def from_bytes(cls, data):
+        s = serialize.Deserializer(data)
+        magic = s.uint(4)
+        command = s.str(12).rstrip('\0')
+        length = s.uint(4)
+        checksum = s.bytes(4)
+        return cls(magic, command, length, checksum)
+
+    def to_bytes(self):
         s = serialize.Serializer()
         s.uint(self.magic, 4)
         s.bytes(bytes(self.command, 'utf8')[:12].ljust(12, b'\0'))
@@ -178,7 +179,7 @@ class Object(object):
             self.type = s.uint(4)
             self.version = s.vint()
             self.stream = s.vint()
-            self.payload = s.data
+            self.payload = s.bytes()
 
     @property
     def hash(self):

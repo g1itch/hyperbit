@@ -196,12 +196,13 @@ class PacketConnection(object):
         return (yield from self._c.connect())
 
     def send_packet(self, payload):
-        header = packet.Header()
-        header.command = payload.command
+        magic = 0xe9beb4d9
+        command = payload.command
         payloaddata = payload.data
-        header.length = len(payloaddata)
-        header.checksum = crypto.sha512(payloaddata)[:4]
-        self._c.send(header.data)
+        length = len(payloaddata)
+        checksum = crypto.sha512(payloaddata)[:4]
+        header = packet.Header(magic, command, length, checksum)
+        self._c.send(header.to_bytes())
         self._c.send(payloaddata)
 
     @asyncio.coroutine
@@ -212,7 +213,7 @@ class PacketConnection(object):
             if not buf:
                 return None
             headerdata += buf
-        header = packet.Header(headerdata)
+        header = packet.Header.from_bytes(headerdata)
         if header.magic != 0xe9beb4d9:
             return None
         payloaddata = b''

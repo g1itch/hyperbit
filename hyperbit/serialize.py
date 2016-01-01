@@ -84,7 +84,3 @@ class Deserializer:
     def vstr(self):
         size = self.vint()
         return self.str(size)
-
-    @property
-    def data(self):
-        return self._data[self._index:]

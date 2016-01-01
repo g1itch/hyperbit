@@ -17,9 +17,6 @@ def encode_raw(data):
 def decode_raw(chars):
     map = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     number = 0
-    chars = chars.strip()
-    if chars[:3] == 'BM-':
-        chars = chars[3:]
     for char in chars:
         number = len(map) * number + map.index(char)
     data = number.to_bytes((number.bit_length()+7)//8, byteorder='big', signed=False)
@@ -36,6 +33,9 @@ def encode(data, prepend_bm=False):
 
 
 def decode(chars):
+    chars = chars.strip()
+    if chars[:3] == 'BM-':
+        chars = chars[3:]
     data = decode_raw(chars)
     checksum = crypto.sha512d(data[:-4])[:4]
     assert checksum == data[-4:]
@@ -49,6 +49,7 @@ def encode_wif(data):
 
 
 def decode_wif(chars):
+    chars = chars.strip()
     data = decode_raw(chars)
     checksum = crypto.sha256d(data[:-4])[:4]
     assert checksum == data[-4:]
