@@ -1,7 +1,12 @@
 # Copyright 2015 HyperBit developers
 
 from hyperbit import base58, serialize, crypto
+import enum
 
+
+class IdentityType(enum.IntEnum):
+    normal = 0
+    channel = 1
 
 class Address(object):
     def __init__(self, version, stream, ripe):
@@ -130,7 +135,7 @@ class Wallet(object):
                 else:
                     identity.type = 0
 
-    def new_deterministic(self, name, text):
+    def new_deterministic(self, name, type, text):
         for i in range(0, 2**64, 2):
             s1 = serialize.Serializer()
             s1.str(text)
@@ -144,23 +149,23 @@ class Wallet(object):
             enckey = crypto.priv_to_pub(deckey)
             ripe = crypto.bm160(verkey + enckey)
             if ripe[0:1] == b'\x00':
-                return self.new_identity(name, sigkey, deckey)
+                return self.new_identity(name, type, sigkey, deckey)
 
-    def new_random(self, name):
+    def new_random(self, name, type):
         sigkey = crypto.gen_priv()
         deckey = crypto.gen_priv()
-        return self.new_identity(name, sigkey, deckey)
+        return self.new_identity(name, type, sigkey, deckey)
 
-    def new_identity(self, name, sigkey, deckey):
+    def new_identity(self, name, type, sigkey, deckey):
         verkey = crypto.priv_to_pub(sigkey)
         enckey = crypto.priv_to_pub(deckey)
         ripe = crypto.bm160(verkey + enckey)
         self.names.set(ripe, name)
         address = Address(4, 1, ripe)
-        self._db.execute('insert into identities (address, name, sigkey, deckey) values (?, "", ?, ?)',
-                (address.to_bytes(), sigkey, deckey))
-        self._db.execute('insert into profiles (address, name, verkey, enckey) values (?, "", ?, ?)',
-                (address.to_bytes(), verkey, enckey))
+        self._db.execute('insert into identities (address, name, sigkey, deckey) values (?, ?, ?, ?)',
+                (address.to_bytes(), type, sigkey, deckey))
+        self._db.execute('insert into profiles (address, name, verkey, enckey) values (?, ?, ?, ?)',
+                (address.to_bytes(), type, verkey, enckey))
         identity = Identity2(self._db, address)
         for func in self.on_add_identity:
             func(identity)

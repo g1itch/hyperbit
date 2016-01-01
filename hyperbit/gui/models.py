@@ -1,10 +1,11 @@
 # Copyright 2015 HyperBit developers
 
-from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QSortFilterProxyModel
-from PyQt5.QtGui import QFont
+from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QSortFilterProxyModel, QVariant
+from PyQt5.QtGui import QBrush, QColor, QFont
 import binascii
 from datetime import datetime
 from hyperbit.gui import identicon
+from hyperbit import wallet
 import asyncio
 
 class ConnectionModel(QAbstractTableModel):
@@ -106,13 +107,24 @@ class IdentityModel(QAbstractTableModel):
                 return identicon.get(identity.profile.address.to_bytes())
             else:
                 return None
+        elif role == Qt.ForegroundRole:
+            identity = self.identities[index.row()]
+            column = index.column()
+            if identity.type == wallet.IdentityType.normal:
+                return QBrush(Qt.black)
+            elif identity.type == wallet.IdentityType.channel:
+                return QBrush(Qt.darkRed)
         else:
             return None
 
     def flags(self, index):
+        identity = self.identities[index.row()]
         column = index.column()
         if column == 0:
-            return Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
+            if identity.type == wallet.IdentityType.normal:
+                return Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
+            elif identity.type == wallet.IdentityType.channel:
+                return Qt.ItemIsEnabled | Qt.ItemIsSelectable
         elif column == 1:
             return Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
@@ -121,8 +133,11 @@ class IdentityModel(QAbstractTableModel):
             identity = self.identities[index.row()]
             column = index.column()
             if column == 0:
-                self.wal.names.set(identity.profile.address.ripe, value)
-                return True
+                if identity.type == wallet.IdentityType.normal:
+                    self.wal.names.set(identity.profile.address.ripe, value)
+                    return True
+                elif identity.type == wallet.IdentityType.channel:
+                    return False
             elif column == 1:
                 return False
         else:

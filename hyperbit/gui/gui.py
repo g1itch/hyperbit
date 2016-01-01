@@ -188,19 +188,19 @@ class MainWindow(QMainWindow):
         if dialog.result():
             if dialog.random.isChecked():
                 name = dialog.name.text()
-                self._wal.new_random(name)
+                self._wal.new_random(name, wallet.IdentityType.normal)
             elif dialog.wif.isChecked():
                 name = dialog.name.text()
                 sigkey = base58.decode_wif(dialog.sigkey.text())
                 deckey = base58.decode_wif(dialog.deckey.text())
-                self._wal.new_identity(name, sigkey, deckey)
+                self._wal.new_identity(name, wallet.IdentityType.normal, sigkey, deckey)
 
     def _on_channel_join_clicked(self):
         dialog = JoinChannel(self)
         dialog.exec()
         if dialog.result() == QDialog.Accepted:
             text = dialog.passphrase.text()
-            self._wal.new_deterministic('[chan] '+text, text)
+            self._wal.new_deterministic('[chan] '+text, wallet.IdentityType.channel, text)
 
     def _on_channel_send_clicked(self):
         if self.comboFrom.currentIndex() < 0:
