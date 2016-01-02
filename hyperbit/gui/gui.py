@@ -257,10 +257,11 @@ class MainWindow(QMainWindow):
         uic.loadUi(resource_path('data/MainWindow.ui'), self)
         self._core = core
 
+        self._status_tab = StatusTab(self._core, self)
         self.tab.addTab(ChannelsTab(self._core, self), 'Channels')
         self.tab.addTab(MessagesTab(self._core, self), 'Messages')
         self.tab.addTab(ObjectsTab(self._core, self), 'Objects')
-        self.tab.addTab(StatusTab(self._core, self), 'Status')
+        self.tab.addTab(self._status_tab, 'Status')
         self.tab.setCurrentIndex(0)
 
         self._progressBar = QProgressBar()
@@ -278,5 +279,8 @@ class MainWindow(QMainWindow):
             self._progressBar.setMaximum(self._core.scanner.max)
             self._progressBar.setValue(self._core.scanner.value)
             self._progressBar.show()
+
+    def configure_network(self):
+        return self._status_tab.configure_network()
 
 
