@@ -8,6 +8,7 @@ from hyperbit.gui import identicon
 from hyperbit import wallet
 import asyncio
 
+
 class ConnectionModel(QAbstractTableModel):
     def __init__(self, peers):
         super().__init__()

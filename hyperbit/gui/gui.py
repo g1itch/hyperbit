@@ -10,11 +10,13 @@ import sys
 from hyperbit import base58, wallet, helper
 from hyperbit.gui import models, identicon
 
+
 def resource_path(path):
     try:
         return os.path.join(sys._MEIPASS, path)
     except:
         return os.path.join(os.path.dirname(__file__), path)
+
 
 class NetworkConfig(QDialog):
     def __init__(self, core, parent=None):
@@ -39,6 +41,7 @@ class NewUserDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         uic.loadUi(resource_path('data/NewUserDialog.ui'), self)
+
 
 class ChannelsTab(QSplitter):
     def __init__(self, core, parent=None):
@@ -182,7 +185,6 @@ class MessagesTab(QSplitter):
         self.messages_message.setPlainText('')
 
 
-
 class ObjectsTab(QWidget):
     def __init__(self, core, parent=None):
         super().__init__(parent)
@@ -193,7 +195,6 @@ class ObjectsTab(QWidget):
         proxyModel = QSortFilterProxyModel()
         proxyModel.setSourceModel(model)
         self.tableView.setModel(proxyModel)
-
 
 
 class StatusTab(QWidget):

@@ -4,6 +4,7 @@ import asyncio, concurrent.futures
 
 from hyperbit import packet, pow
 
+
 class Worker(object):
     def __init__(self, db):
         self._db = db

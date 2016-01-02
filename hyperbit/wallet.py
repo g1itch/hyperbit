@@ -8,6 +8,7 @@ class IdentityType(enum.IntEnum):
     normal = 0
     channel = 1
 
+
 class Address(object):
     def __init__(self, version, stream, ripe):
         self.version = version
@@ -198,32 +199,6 @@ class Wallet(object):
         for address, in self._db.execute('select address from profiles'):
             profiles.append(Profile2(self._db, Address.from_bytes(address)))
         return profiles
-
-
-class AddressEntry(object):
-    def __init__(self, name, address):
-        self.name = name
-        self.address = address
-
-class AddressBook(object):
-    def __init__(self):
-        self.entries = []
-        self.on_add_entry = []
-
-    def add_entry(self,entry):
-        self.entries.append(entry)
-        for func in self.on_add_entry:
-            func(entry)
-
-class ProfileCache(object):
-    def __init__(self):
-        self.profiles = []
-        self.on_add_profile = []
-
-    def add_profile(self, profile):
-        self.profiles.append(profile)
-        for func in self.on_add_profile:
-            func(profile)
 
 
 class Names(object):

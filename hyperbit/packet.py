@@ -4,6 +4,7 @@ import random
 import time
 from hyperbit import config, pow, serialize, crypto
 
+
 class Header(object):
     def __init__(self, magic, command, length, checksum):
         self.magic = magic

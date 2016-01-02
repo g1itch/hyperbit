@@ -4,6 +4,7 @@ import asyncio
 
 from hyperbit import config, crypto, inventory, message, network, objscanner, objtypes, wallet, database, worker
 
+
 class Core(object):
     def __init__(self):
         self._db = database.db2
