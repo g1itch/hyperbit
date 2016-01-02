@@ -128,16 +128,27 @@ class PeerManager(object):
                 port = self._core.get_config('network.tor_port')
                 socks.set_default_proxy(socks.PROXY_TYPE_SOCKS5, host, port, True)
                 socket.socket = socks.socksocket
-        else:
+        elif self._core.get_config('network.proxy') == 'disabled':
             asyncio.get_event_loop().create_task(self._run2())
-        while True:
-            if self.count_connected() < config.CONNECTION_COUNT\
-                    and self.count_pending_and_connected() < self.count_all():
-                self._open_one()
-            while self.count_pending_and_connected() < config.CONNECTION_COUNT\
-                    and self.count_pending_and_connected() < self.count_all():
-                self._open_one()
-            yield from asyncio.sleep(10)
+        if self._core.get_config('network.proxy') == 'trusted':
+            while True:
+                host = self._core.get_config('network.trusted_host')
+                port = self._core.get_config('network.trusted_port')
+                print('trying', host, port)
+                c = PacketConnection(net.Connection(net.ipv6(host), port))
+                conn = Connection2(om=self.om, peers=self, connection=c)
+                self._connections.append(conn)
+                yield from conn.run()
+                yield from asyncio.sleep(10)
+        else:
+            while True:
+                if self.count_connected() < config.CONNECTION_COUNT\
+                        and self.count_pending_and_connected() < self.count_all():
+                    self._open_one()
+                while self.count_pending_and_connected() < config.CONNECTION_COUNT\
+                        and self.count_pending_and_connected() < self.count_all():
+                    self._open_one()
+                yield from asyncio.sleep(10)
 
     @asyncio.coroutine
     def _run2(self):

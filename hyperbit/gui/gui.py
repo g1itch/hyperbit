@@ -248,18 +248,26 @@ class StatusTab(QWidget):
         network_dialog = NetworkConfig(self._core, self)
         if self._core.get_config('network.proxy') == 'tor':
             network_dialog.raTor.setChecked(True)
+        if self._core.get_config('network.proxy') == 'trusted':
+            network_dialog.raTrusted.setChecked(True)
         network_dialog.liListen.setText(str(self._core.get_config('network.listen_port', 8444)))
         network_dialog.liHost.setText(self._core.get_config('network.tor_host', '127.0.0.1'))
         network_dialog.liPort.setText(str(self._core.get_config('network.tor_port', 9050)))
+        network_dialog.liTrustedHost.setText(self._core.get_config('network.trusted_host', '127.0.0.1'))
+        network_dialog.liTrustedPort.setText(str(self._core.get_config('network.trusted_port', 8444)))
         network_dialog.exec()
         if network_dialog.result():
             if network_dialog.raNone.isChecked():
                 self._core.set_config('network.proxy', 'disabled')
             if network_dialog.raTor.isChecked():
                 self._core.set_config('network.proxy', 'tor')
+            if network_dialog.raTrusted.isChecked():
+                self._core.set_config('network.proxy', 'trusted')
             self._core.set_config('network.listen_port', int(network_dialog.liListen.text()))
             self._core.set_config('network.tor_host', network_dialog.liHost.text())
             self._core.set_config('network.tor_port', int(network_dialog.liPort.text()))
+            self._core.set_config('network.trusted_host', network_dialog.liTrustedHost.text())
+            self._core.set_config('network.trusted_port', int(network_dialog.liTrustedPort.text()))
             return True
         else:
             return False

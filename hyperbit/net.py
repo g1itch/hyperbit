@@ -26,14 +26,15 @@ class Connection(object):
         else:
             host = self.remote_host.compressed
         def func():
-            self._s.connect((host, self.remote_port))
+            try:
+                self._s.connect((host, self.remote_port))
+            except (OSError, ConnectionRefusedError):
+                return False
+            else:
+                return True
         loop = asyncio.get_event_loop()
-        try:
-            yield from loop.run_in_executor(None, func)
-        except (OSError, ConnectionRefusedError):
-            return False
-        else:
-            return True
+        return (yield from loop.run_in_executor(None, func))
+
 
     def send(self, data):
         try:

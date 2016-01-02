@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>300</height>
+    <height>308</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,12 +22,22 @@
      <item row="2" column="0" colspan="2">
       <widget class="QRadioButton" name="raNone">
        <property name="text">
-        <string>No Proxy</string>
+        <string>Direct connection</string>
        </property>
        <property name="checked">
         <bool>true</bool>
        </property>
       </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="laListen">
+       <property name="text">
+        <string>Listen port:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLineEdit" name="liListen"/>
      </item>
      <item row="4" column="0" colspan="2">
       <widget class="QRadioButton" name="raTor">
@@ -51,9 +61,6 @@
        <property name="enabled">
         <bool>false</bool>
        </property>
-       <property name="text">
-        <string>127.0.0.1</string>
-       </property>
       </widget>
      </item>
      <item row="6" column="0">
@@ -71,22 +78,46 @@
        <property name="enabled">
         <bool>false</bool>
        </property>
+      </widget>
+     </item>
+     <item row="7" column="0" colspan="2">
+      <widget class="QRadioButton" name="raTrusted">
        <property name="text">
-        <string>9050</string>
+        <string>Trusted peer</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="1">
-      <widget class="QLineEdit" name="liListen">
-       <property name="text">
-        <string>8444</string>
+     <item row="8" column="1">
+      <widget class="QLineEdit" name="liTrustedHost">
+       <property name="enabled">
+        <bool>false</bool>
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="laListen">
+     <item row="9" column="1">
+      <widget class="QLineEdit" name="liTrustedPort">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="0">
+      <widget class="QLabel" name="laTrustedPort">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="text">
-        <string>Listen port:</string>
+        <string>Port:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="0">
+      <widget class="QLabel" name="laTrustedHost">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string>Host:</string>
        </property>
       </widget>
      </item>
@@ -228,6 +259,70 @@
     <hint type="destinationlabel">
      <x>236</x>
      <y>63</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>raTrusted</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>laTrustedPort</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>199</x>
+     <y>182</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>24</x>
+     <y>243</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>raTrusted</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>liTrustedPort</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>199</x>
+     <y>182</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>236</x>
+     <y>243</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>raTrusted</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>liTrustedHost</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>199</x>
+     <y>182</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>236</x>
+     <y>212</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>raTrusted</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>laTrustedHost</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>199</x>
+     <y>182</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>25</x>
+     <y>212</y>
     </hint>
    </hints>
   </connection>
