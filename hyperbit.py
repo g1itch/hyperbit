@@ -24,7 +24,7 @@ def save():
 @asyncio.coroutine
 def run():
     core = core2.Core()
-    window = gui.MainWindow(core, peers=core.peers, inv=core.inv, wal=core.wal, list=core.list, scanner=core.scanner)
+    window = gui.MainWindow(core)
     if not core.get_config('network.proxy'):
         if not window.configure_network():
             return
