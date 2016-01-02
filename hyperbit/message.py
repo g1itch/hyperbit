@@ -4,14 +4,15 @@ from hyperbit import database
 
 
 class Comment2(object):
-    def __init__(self, rowid):
+    def __init__(self, db, rowid):
+        self._db = db
         self._rowid = rowid
 
     @property
     def thread(self):
         thread_id = database.db2.execute('select thread_id from comments where rowid = ?',
                 (self._rowid,)).fetchone()[0]
-        return Thread2(thread_id)
+        return Thread2(self._db, thread_id)
 
     @property
     def parent_text(self):
@@ -40,7 +41,8 @@ class Comment2(object):
 
 
 class Thread2(object):
-    def __init__(self, rowid):
+    def __init__(self, db, rowid):
+        self._db = db
         self._rowid = rowid
 
     @property
@@ -68,13 +70,13 @@ class Thread2(object):
                 (self._rowid,))
         rowid = database.db2.execute('insert into comments (thread_id, parent_text, creator, text) values (?, ?, ?, ?)',
                 (self._rowid, parent_text, creator, text)).lastrowid
-        return Comment2(rowid)
+        return Comment2(self._db, rowid)
 
     @property
     def comments(self):
         comments = []
         for rowid, in database.db2.execute('select rowid from comments where thread_id = ? order by rowid', (self._rowid,)):
-            comments.append(Comment2(rowid))
+            comments.append(Comment2(self._db, rowid))
         return comments
 
     @property
@@ -97,63 +99,41 @@ class Thread2(object):
         database.db2.execute('update threads set unread = ? where rowid = ?',
                 (unread, self._rowid))
 
+    def __eq__(self, other):
+        if isinstance(other, Thread2):
+            return self._db == other._db and self._rowid == other._rowid
+        else:
+            return NotImplemented
+
 class ThreadList(object):
     def __init__(self):
+        self._db = database.db2
         database.db2.execute('create table if not exists threads (channel, creator, subject, longest, unread)')
         database.db2.execute('create table if not exists comments (thread_id, parent_text, creator, text)')
         self.on_add_thread = []
+        self.on_remove_thread = []
 
     def new_thread(self, channel, creator, subject):
         rowid = database.db2.execute('insert into threads (channel, creator, subject, longest, unread) values (?, ?, ?, ?, 0)',
                 (channel, creator, subject, '')).lastrowid
-        thread = Thread2(rowid)
+        thread = Thread2(self._db, rowid)
         for func in self.on_add_thread:
             func(thread)
         return thread
 
-    def add_thread(self, thread):
-        database.db2.execute('insert into threads (channel, creator, subject) values (?, ?, ?)',
-                [b'', b'', thread.subject])
-        database.db2.execute('insert into comments (thread_id, parent_text, creator, text) values (?, ?, ?, ?)',
-                [-1, '', b'', thread.bodies[0]])
-        self.threads.append(thread)
-        for func in self.on_add_thread:
+    def remove_thread(self, thread):
+        for func in self.on_remove_thread:
             func(thread)
+        database.db2.execute('delete from comments '
+                             'where thread_id = ?',
+                             (thread._rowid,))
+        database.db2.execute('delete from threads '
+                             'where rowid = ?',
+                             (thread._rowid,))
 
     @property
     def threads(self):
         threads = []
         for rowid, in database.db2.execute('select rowid from threads'):
-            threads.append(Thread2(rowid))
+            threads.append(Thread2(self._db, rowid))
         return threads
-
-
-class Thread(object):
-    def __init__(self, identity, subject):
-        self.identity = identity
-        self.subject = subject
-        self.bodies = []
-        self.on_add_body = []
-        self.on_insert_comment = []
-
-    def insert_comment(self, index, comment):
-        self.bodies.insert(index, comment)
-        for func in self.on_insert_comment:
-            func(index, comment)
-
-    def add_body(self, body):
-        self.bodies.append(body)
-        for func in self.on_add_body:
-            func(body)
-
-
-class Comment(object):
-    def __init__(self, text, ghost):
-        self.text = text
-        self.ghost = ghost
-        self.on_change = []
-
-    def set_ghost(self, ghost):
-        self.ghost = ghost
-        for func in self.on_change:
-            func()

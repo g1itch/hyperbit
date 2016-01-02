@@ -88,12 +88,18 @@ class ChannelsTab(QSplitter):
     def show_context_menu(self, event):
         row = self.channels_list.indexAt(event.pos()).row()
         identity = self._channelModel.get_identity_by_row(row)
+        address = identity.profile.address
         if row < 0:
             return
         menu = QMenu()
         def copy_address():
-            qApp.clipboard().setText(identity.profile.address.to_str())
+            qApp.clipboard().setText(address.to_str())
         menu.addAction('Copy address to clipboard').triggered.connect(copy_address)
+        def delete():
+            if QMessageBox.question(self, 'HyperBit', 'Are you sure you want to delete {}?'
+                                   .format(self._core.wal.names.get(address.ripe))) == QMessageBox.Yes:
+                self._core.wal.remove_identity(identity)
+        menu.addAction('Delete').triggered.connect(delete)
         menu.exec(self.mapToGlobal(event.pos()))
 
     def _create_new_user(self):
@@ -119,11 +125,23 @@ class MessagesTab(QSplitter):
         self._threadModel = models.ThreadModel(self._core.list)
         self.threads.setModel(self._threadModel)
         self.threads.selectionModel().selectionChanged.connect(self._on_threads_selectionChanged)
+        self.threads.contextMenuEvent = self._on_threads_context_menu_event
 
         self._channelModel = models.IdentityModel(self._core.wal)
         self.comboFrom2.setModel(self._channelModel)
 
         self.messages_reply.clicked.connect(self._on_messages_reply_clicked)
+
+    def _on_threads_context_menu_event(self, event):
+        row = self.threads.indexAt(event.pos()).row()
+        if row < 0:
+            return
+        thread = self._threadModel.get_thread_by_row(row)
+        menu = QMenu()
+        def delete():
+            self._core.list.remove_thread(thread)
+        menu.addAction('Delete').triggered.connect(delete)
+        menu.exec(self.mapToGlobal(event.pos()))
 
     def _on_threads_selectionChanged(self, selection):
         indexes = selection.indexes()
@@ -282,5 +300,3 @@ class MainWindow(QMainWindow):
 
     def configure_network(self):
         return self._status_tab.configure_network()
-
-

@@ -119,6 +119,12 @@ class Identity2(object):
     def decrypt(self, data):
         return crypto.decrypt(self.deckey, data)
 
+    def __eq__(self, other):
+        if isinstance(other, Identity2):
+            return self._db == other._db and self._address.to_bytes() == other._address.to_bytes()
+        else:
+            return NotImplemented
+
 
 class Wallet(object):
     def __init__(self, db):
@@ -199,6 +205,16 @@ class Wallet(object):
         for address, in self._db.execute('select address from profiles'):
             profiles.append(Profile2(self._db, Address.from_bytes(address)))
         return profiles
+
+    def remove_identity(self, identity):
+        for func in self.on_remove_identity:
+            func(identity)
+        self._db.execute('delete from identities '
+                         'where address = ?',
+                         (identity.address.to_bytes(),))
+        self._db.execute('delete from profiles '
+                         'where address = ?',
+                         (identity.address.to_bytes(),))
 
 
 class Names(object):
