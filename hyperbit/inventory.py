@@ -29,13 +29,6 @@ class Inventory(object):
             object = packet.Object(data)
             return object
 
-    def _do_pow(self, object, trials, extra, timestamp):
-        yield from asyncio.get_event_loop().run_in_executor(None, object.do_pow, trials, extra, timestamp)
-        self.add_object(object)
-
-    def add_object_without_pow(self, object, trials, extra, timestamp):
-        asyncio.get_event_loop().create_task(self._do_pow(object, trials, extra, timestamp))
-
     def add_object(self, object):
         exists = self._db.execute('select count(*) from objects where hash = ?', (object.hash,)).fetchone()[0]
         if exists:

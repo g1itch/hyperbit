@@ -26,8 +26,3 @@ def check(payload, trials, extra, ttl, nonce):
     c = crypto.sha512d(a+initial)
     value = int.from_bytes(c[:8], 'big')
     return value <= target
-
-
-def wrapper(payload, trials, extra, ttl):
-    nonce = yield from asyncio.get_event_loop().run_in_executor(None, pow, payload, trials, extra, ttl)
-    return nonce

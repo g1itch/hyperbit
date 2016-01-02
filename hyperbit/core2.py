@@ -2,7 +2,7 @@
 
 import asyncio
 
-from hyperbit import config, crypto, inventory, message, network, objscanner, objtypes, wallet, database
+from hyperbit import config, crypto, inventory, message, network, objscanner, objtypes, wallet, database, worker
 
 class Core(object):
     def __init__(self):
@@ -14,6 +14,8 @@ class Core(object):
         self.wal = wallet.Wallet(self._db)
         self.list = message.ThreadList()
         self.scanner = objscanner.Scanner(self.inv, self.wal)
+        self.worker = worker.Worker(self._db)
+        self.worker.on_object_done.append(self.inv.add_object)
         self.wal.on_add_identity.append(self.scan_identity)
         self.inv.on_add_object.append(self.scan_object)
         self.scanner.on_scan_item.append(self.do_scan)

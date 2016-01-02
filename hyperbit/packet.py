@@ -208,14 +208,6 @@ class Object(object):
         completed = pow.check(self.data[8:], trials, extra, ttl, self.nonce)
         return completed
 
-    def do_pow(self, trials, extra, timestamp):
-        ttl = int(self.expires - timestamp)
-        self.nonce = pow.pow(self.data[8:], trials, extra, ttl)
-
-    def complete(self):
-        ttl = int(self.expires - time.time())
-        self.nonce = yield from pow.wrapper(self.data[8:], config.NETWORK_TRIALS, config.NETWORK_EXTRA, ttl)
-
     @property
     def data(self):
         s = serialize.Serializer()

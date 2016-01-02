@@ -11,7 +11,7 @@ def create_message(subject, body, parent=None):
         return ('Subject:Re: '+subject+'\nBody:'+body+'\n'+54*'-'+'\n'+parent).encode()
 
 
-def send_message(src, dst, encoding, message, inv):
+def send_message(src, dst, encoding, message, worker):
     object = packet.Object()
     object.nonce = 0
     object.expires = int(time.time() + 4*24*60*60 + crypto.randint(-60*60, 60*60))
@@ -28,5 +28,5 @@ def send_message(src, dst, encoding, message, inv):
             ack=b'', signature=b'')
     msg.sign(src.sigkey, object)
     object.payload = crypto.encrypt(dst.enckey, msg.to_bytes())
-    inv.add_object_without_pow(object, config.NETWORK_TRIALS, config.NETWORK_EXTRA, int(time.time()))
+    worker.add_object(object, config.NETWORK_TRIALS, config.NETWORK_EXTRA, int(time.time()))
 

@@ -78,7 +78,7 @@ class ChannelsTab(QSplitter):
         subject = self.channels_subject.text()
         body = self.channels_message.toPlainText()
         message = helper.create_message(subject, body)
-        helper.send_message(src, dst, 2, message, self._core.inv)
+        helper.send_message(src, dst, 2, message, self._core.worker)
         self.channels_subject.setText('')
         self.channels_message.setPlainText('')
 
@@ -178,7 +178,7 @@ class MessagesTab(QSplitter):
         body = self.messages_message.toPlainText()
         parent = thread.longest
         message = helper.create_message(subject, body, parent)
-        helper.send_message(src, dst, 2, message, self._core.inv)
+        helper.send_message(src, dst, 2, message, self._core.worker)
         self.messages_message.setPlainText('')
 
 
