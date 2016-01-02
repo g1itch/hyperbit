@@ -67,12 +67,12 @@ class Profile2(object):
     @property
     def verkey(self):
         for verkey, in self._db.execute('select verkey from profiles where address = ?', (self._address.to_bytes(),)):
-            return verkey
+            return verkey[-64:]
 
     @property
     def enckey(self):
         for enckey, in self._db.execute('select enckey from profiles where address = ?', (self._address.to_bytes(),)):
-            return enckey
+            return enckey[-64:]
 
     def encrypt(self, data):
         return crypto.encrypt(self.enckey, data)
@@ -154,7 +154,7 @@ class Wallet(object):
             deckey = crypto.sha512(s2.data)[0:32]
             verkey = crypto.priv_to_pub(sigkey)
             enckey = crypto.priv_to_pub(deckey)
-            ripe = crypto.bm160(verkey + enckey)
+            ripe = crypto.to_ripe(verkey, enckey)
             if ripe[0:1] == b'\x00':
                 return self.new_identity(name, type, sigkey, deckey)
 
@@ -166,13 +166,13 @@ class Wallet(object):
     def new_identity(self, name, type, sigkey, deckey):
         verkey = crypto.priv_to_pub(sigkey)
         enckey = crypto.priv_to_pub(deckey)
-        ripe = crypto.bm160(verkey + enckey)
+        ripe = crypto.to_ripe(verkey, enckey)
         self.names.set(ripe, name)
         address = Address(4, 1, ripe)
         self._db.execute('insert into identities (address, name, sigkey, deckey) values (?, ?, ?, ?)',
                 (address.to_bytes(), type, sigkey, deckey))
         self._db.execute('insert into profiles (address, name, verkey, enckey) values (?, ?, ?, ?)',
-                (address.to_bytes(), type, verkey, enckey))
+                (address.to_bytes(), type, b'\x04'+verkey, b'\x04'+enckey))
         identity = Identity2(self._db, address)
         for func in self.on_add_identity:
             func(identity)
@@ -180,17 +180,6 @@ class Wallet(object):
 
     def get_identity(self, address):
         return Identity2(self._db, Address.from_bytes(address))
-
-    def add_identity(self, identity):
-        address = identity.profile.address.to_bytes()
-        self._db.execute('insert into identities (address, name, sigkey, deckey) values (?, ?, ?, ?)',
-                (address, identity.name, identity.deckey, identity.sigkey))
-        profile = identity.profile
-        self._db.execute('insert into profiles (address, name, verkey, enckey) values (?, ?, ?, ?)',
-                (address, '', profile.enckey, profile.verkey))
-        self.identities.append(identity)
-        for func in self.on_add_identity:
-            func(identity)
 
     @property
     def identities(self):

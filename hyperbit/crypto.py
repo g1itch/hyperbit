@@ -39,10 +39,9 @@ def _priv_to_private(privkey):
 
 
 def _pub_to_public(pubkey):
-    assert len(pubkey) == 65
-    assert pubkey[0:1] == b'\x04'
-    x = int.from_bytes(pubkey[1:33], 'big')
-    y = int.from_bytes(pubkey[33:65], 'big')
+    assert len(pubkey) == 64
+    x = int.from_bytes(pubkey[0:32], 'big')
+    y = int.from_bytes(pubkey[32:64], 'big')
     public_numbers = ec.EllipticCurvePublicNumbers(x, y, ec.SECP256K1())
     return public_numbers.public_key(openssl.backend)
 
@@ -55,7 +54,7 @@ def gen_priv():
 def priv_to_pub(privkey):
     assert len(privkey) == 32
     x, y = _point_multiply(int.from_bytes(privkey, 'big'))
-    return b'\x04' + x.to_bytes(32, 'big') + y.to_bytes(32, 'big')
+    return x.to_bytes(32, 'big') + y.to_bytes(32, 'big')
 
 
 def encrypt(pubkey, data):
@@ -103,7 +102,7 @@ def decrypt(privkey, data):
     encrypted = s.bytes(-32)
     assert encrypted != b''
     mac = s.bytes(32)
-    pubkey = b'\x04' + x.rjust(32, b'\x00') + y.rjust(32, b'\x00')
+    pubkey = x.rjust(32, b'\x00') + y.rjust(32, b'\x00')
     public_key = _pub_to_public(pubkey)
     private_key = _priv_to_private(privkey)
     secret = private_key.exchange(ec.ECDH(), public_key)
@@ -121,10 +120,17 @@ def decrypt(privkey, data):
 
 
 def verify(pubkey, data, signature):
-    public_key = _pub_to_public(pubkey)
-    verifier = public_key.verifier(signature, ec.ECDSA(hashes.SHA256()))
-    verifier.update(data)
-    verifier.verify()
+    try:
+        public_key = _pub_to_public(pubkey)
+        verifier = public_key.verifier(signature, ec.ECDSA(hashes.SHA256()))
+        verifier.update(data)
+        verifier.verify()
+    except:
+        # Also support SHA1 signatures as they're still seen in the wild
+        public_key = _pub_to_public(pubkey)
+        verifier = public_key.verifier(signature, ec.ECDSA(hashes.SHA1()))
+        verifier.update(data)
+        verifier.verify()
 
 
 def sign(privkey, data):
@@ -164,3 +170,8 @@ def randint(min, max):
     random = int.from_bytes(os.urandom(128//8), 'big')
     return min + random%count
 
+
+def to_ripe(verkey, enckey):
+    assert len(verkey) == 64
+    assert len(enckey) == 64
+    return bm160(b'\x04'+verkey+b'\x04'+enckey)

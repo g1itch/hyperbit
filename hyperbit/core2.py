@@ -67,7 +67,7 @@ class Core(object):
                         subject = ''
                         body = text
                     channel = wallet.Address(4, 1, msg.ripe).to_bytes()
-                    creator = wallet.Address(4, 1, crypto.bm160(msg.verkey + msg.enckey)).to_bytes()
+                    creator = wallet.Address(4, 1, crypto.to_ripe(msg.verkey, msg.enckey)).to_bytes()
                     reply = subject[0:4] == 'Re: '
                     if reply:
                         subject = subject[4:]
