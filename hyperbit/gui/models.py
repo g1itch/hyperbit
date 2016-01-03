@@ -1,4 +1,4 @@
-# Copyright 2015 HyperBit developers
+# Copyright 2015-2016 HyperBit developers
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QSortFilterProxyModel, QVariant
 from PyQt5.QtGui import QBrush, QColor, QFont

@@ -1,4 +1,4 @@
-# Copyright 2015 HyperBit developers
+# Copyright 2015-2016 HyperBit developers
 
 from hyperbit import base58, serialize, crypto, config
 import enum

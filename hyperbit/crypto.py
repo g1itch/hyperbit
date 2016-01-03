@@ -1,4 +1,4 @@
-# Copyright 2015 HyperBit developers
+# Copyright 2015-2016 HyperBit developers
 
 from cryptography.hazmat.backends import openssl
 from cryptography.hazmat.primitives.asymmetric import ec

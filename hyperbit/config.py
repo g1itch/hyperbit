@@ -1,4 +1,4 @@
-# Copyright 2015 HyperBit developers
+# Copyright 2015-2016 HyperBit developers
 
 CLEANUP_INTERVAL = 10 * 60
 USER_AGENT = '/HyperBit:0.1.0/'
