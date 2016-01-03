@@ -8,39 +8,40 @@ import time
 import socket
 import socks
 
-from hyperbit import config, crypto, database, net, packet
+from hyperbit import config, crypto, net, packet
 
 
 class KnownPeer(object):
-    def __init__(self, host):
+    def __init__(self, db, host):
+        self._db = db
         self._host = host
         self.on_change = []
 
     def set_pending(self):
-        database.db2.execute('update peers set status = 1, tries = tries + 1 where host = ?',
+        self._db.execute('update peers set status = 1, tries = tries + 1 where host = ?',
                 (self._host,))
         for func in self.on_change:
             func()
 
     def set_connected(self):
-        database.db2.execute('update peers set status = 2, tries = 0, timestamp = ? where host = ?',
+        self._db.execute('update peers set status = 2, tries = 0, timestamp = ? where host = ?',
                 (int(time.time()), self._host))
         for func in self.on_change:
             func()
 
     def set_disconnected(self):
-        database.db2.execute('update peers set status = 0 where host = ?',
+        self._db.execute('update peers set status = 0 where host = ?',
                 (self._host,))
         for func in self.on_change:
             func()
 
     @property
     def timestamp(self):
-        return database.db2.execute('select timestamp from peers where host = ?', (self._host,)).fetchone()[0]
+        return self._db.execute('select timestamp from peers where host = ?', (self._host,)).fetchone()[0]
 
     @property
     def services(self):
-        return database.db2.execute('select services from peers where host = ?', (self._host,)).fetchone()[0]
+        return self._db.execute('select services from peers where host = ?', (self._host,)).fetchone()[0]
 
     @property
     def host(self):
@@ -48,23 +49,24 @@ class KnownPeer(object):
 
     @property
     def port(self):
-        return database.db2.execute('select port from peers where host = ?', (self._host,)).fetchone()[0]
+        return self._db.execute('select port from peers where host = ?', (self._host,)).fetchone()[0]
 
     @port.setter
     def port(self, port):
-        database.db2.execute('update peers set port = ? where host = ?', (port, self._host))
+        self._db.execute('update peers set port = ? where host = ?', (port, self._host))
         for func in self.on_change:
             func()
 
 
 class PeerManager(object):
-    def __init__(self, core, inv):
+    def __init__(self, core, db, inv):
         self._core = core
-        database.db2.execute('create table if not exists peers (timestamp, services, host unique, port, status, tries)')
-        database.db2.execute('update peers set status = 0')
+        self._db = db
+        self._db.execute('create table if not exists peers (timestamp, services, host unique, port, status, tries)')
+        self._db.execute('update peers set status = 0')
         self._peers = dict()
-        for host, in database.db2.execute('select host from peers'):
-            self._peers[host] = KnownPeer(host)
+        for host, in self._db.execute('select host from peers'):
+            self._peers[host] = KnownPeer(self._db, host)
 
         self.om = inv
         self.client_nonce = int.from_bytes(os.urandom(8), byteorder='big', signed=False)
@@ -83,7 +85,7 @@ class PeerManager(object):
                 conn.send_inv(object)
 
     def get_best_peer(self):
-        for host, in database.db2.execute('select host from peers where status = 0 order by tries asc, timestamp desc limit 1'):
+        for host, in self._db.execute('select host from peers where status = 0 order by tries asc, timestamp desc limit 1'):
             return self._peers[host]
         return None
 
@@ -97,12 +99,12 @@ class PeerManager(object):
             else:
                 host = ip.packed
         if host in self._peers:
-            database.db2.execute('update peers set timestamp = max(timestamp, ?) where host = ?',
+            self._db.execute('update peers set timestamp = max(timestamp, ?) where host = ?',
                     (timestamp, host))
         else:
-            database.db2.execute('insert into peers (timestamp, services, host, port, status, tries) values (?, ?, ?, ?, 0, 0)',
+            self._db.execute('insert into peers (timestamp, services, host, port, status, tries) values (?, ?, ?, ?, 0, 0)',
                     (timestamp, services, host, port))
-        peer = KnownPeer(host)
+        peer = KnownPeer(self._db, host)
         self._peers[host] = peer
         for func in self.on_add_peer:
             func(peer)
@@ -115,10 +117,10 @@ class PeerManager(object):
         return self._peers.values()
 
     def count_connected(self):
-        return database.db2.execute('select count(*) from peers where status = 2').fetchone()[0]
+        return self._db.execute('select count(*) from peers where status = 2').fetchone()[0]
 
     def count_pending_and_connected(self):
-        return database.db2.execute('select count(*) from peers where status = 1 or status = 2').fetchone()[0]
+        return self._db.execute('select count(*) from peers where status = 1 or status = 2').fetchone()[0]
 
     @asyncio.coroutine
     def run(self):
@@ -152,7 +154,7 @@ class PeerManager(object):
 
     @asyncio.coroutine
     def _run2(self):
-        l = net.Listener(self._core.get_config('network.listen_port', config.LISTEN_PORT))
+        l = net.Listener(self._core.get_config('network.listen_port'))
         while True:
             connection = yield from l.accept()
             c = PacketConnection(connection)
@@ -193,7 +195,7 @@ class PeerManager(object):
     def get_addresses(self):
         addresses = []
         #for peer in self._peers:
-        #    addresses.append(packet.Address(peer.timestamp, 1, peer.services, peer.host, peer.port))
+        #    addresses.append(packet.Address(peer.timestamp, config.NETWORK_STREAM, peer.services, peer.host, peer.port))
         return addresses
 
 
@@ -254,27 +256,24 @@ class Connection2(object):
         self.remote_user_agent = None
 
     def send_inv(self, object):
-        inv = packet.Inv()
-        inv.hashes.append(object.hash)
-        self._c.send_packet(inv)
+        self._c.send_packet(packet.Inv(
+            hashes=[object.hash]
+        ))
 
     @asyncio.coroutine
     def handle_version(self, payload):
         assert payload.nonce != self.peers.client_nonce
         assert payload.version >= 3
-        assert 1 in payload.streams
-        self.remote_user_agent = payload.useragent
-        print(payload.version, payload.useragent)
-        verack = packet.Verack()
-        self._c.send_packet(verack)
-        addr = packet.Addr()
-        addr.addresses = self.peers.get_addresses()
-        self._c.send_packet(addr)
+        assert config.NETWORK_STREAM in payload.streams
+        self.remote_user_agent = payload.user_agent
+        print(payload.version, payload.user_agent)
+        self._c.send_packet(packet.Verack())
+        self._c.send_packet(packet.Addr(self.peers.get_addresses()))
         hashes = self.om.get_hashes_for_send()
         for i in range(0, len(hashes), 50000):
-            inv = packet.Inv()
-            inv.hashes = hashes[i:i+50000]
-            self._c.send_packet(inv)
+            self._c.send_packet(packet.Inv(
+                hashes=hashes[i:i+50000]
+            ))
         self.remote_port = payload.src_port
         for func in self.on_connect:
             func()
@@ -287,29 +286,38 @@ class Connection2(object):
             for func in self.on_disconnect:
                 func()
             return
-        version = packet.Version()
-        version.useragent = config.USER_AGENT
-        version.nonce = self.peers.client_nonce
-        version.src_port = config.LISTEN_PORT
-        self._c.send_packet(version)
+        self._c.send_packet(packet.Version(
+            version=3,
+            services=1,
+            timestamp=int(time.time()),
+            dst_services=1,
+            dst_ip=16*b'\x00',
+            dst_port=8444,
+            src_services=1,
+            src_ip=16*b'\x00',
+            src_port=8444,  # FIXME send correct port number
+            nonce=self.peers.client_nonce,
+            user_agent=config.USER_AGENT,
+            streams=[config.NETWORK_STREAM]
+        ))
         generic = yield from self._c.recv_packet()
         while generic:
             if not self.got_version:
                 if generic.command == 'version':
-                    yield from self.handle_version(packet.Version(generic.data))
+                    yield from self.handle_version(packet.Version.from_bytes(generic.data))
             if not self.got_verack:
                 if generic.command == 'verack':
-                    payload = packet.Verack(generic.data)
+                    payload = packet.Verack.from_bytes(generic.data)
                     self.got_verack = True
             if self.got_version and self.got_verack:
                 if generic.command == 'addr':
-                    addr = packet.Addr(generic.data)
+                    addr = packet.Addr.from_bytes(generic.data)
                     for address in addr.addresses:
-                        if address.stream == 1:
+                        if address.stream == config.NETWORK_STREAM:
                             self.peers.new_peer(address.time, address.services, address.ip, address.port)
                 elif generic.command == 'inv':
-                    inv = packet.Inv(generic.data)
-                    getdata = packet.Getdata()
+                    inv = packet.Inv.from_bytes(generic.data)
+                    getdata = packet.Getdata([])
                     for hash in inv.hashes:
                         object = self.om.get_object(hash)
                         if object is None:
@@ -317,16 +325,16 @@ class Connection2(object):
                     if len(getdata.hashes) > 0:
                         self._c.send_packet(getdata)
                 elif generic.command == 'getdata':
-                    getdata = packet.Getdata(generic.data)
+                    getdata = packet.Getdata.from_bytes(generic.data)
                     for hash in getdata.hashes:
                         object = self.om.get_object(hash)
                         if object is not None:
                             self._c.send_packet(object)
                             yield
                 elif generic.command == 'object':
-                    object = packet.Object(generic.data)
+                    object = packet.Object.from_bytes(generic.data)
                     self.om.add_object(object)
-            generic = yield  from self._c.recv_packet()
+            generic = yield from self._c.recv_packet()
 
         for func in self.on_disconnect:
             func()

@@ -187,7 +187,6 @@ class MsgData(object):
         s.uint(object.type, 4)
         s.vint(object.version)
         s.vint(object.stream)
-        s.bytes(object.payload)
         s.vint(self.addrver)
         s.vint(self.stream)
         s.uint(self.behavior, 4)
@@ -207,7 +206,6 @@ class MsgData(object):
         s.uint(object.type, 4)
         s.vint(object.version)
         s.vint(object.stream)
-        s.bytes(object.payload)
         s.vint(self.addrver)
         s.vint(self.stream)
         s.uint(self.behavior, 4)
@@ -223,7 +221,7 @@ class MsgData(object):
 
 class BroadcastData(object):
     def __init__(self, addrver, stream, behavior, verkey, enckey, trials, extra, encoding, message, signature):
-        addrver = addrver
+        self.addrver = addrver
         self.stream = stream
         self.behavior = behavior
         self.verkey = verkey
@@ -248,4 +246,33 @@ class BroadcastData(object):
         message = s.vbytes()
         signature = s.vbytes()
         return cls(addrver, stream, behavior, verkey, enckey, trials, extra, encoding, message, signature)
+
+
+class Encoding(enum.IntEnum):
+    ignore = 0
+    trivial = 1
+    simple = 2
+
+
+class SimpleMessage(object):
+    encoding = Encoding.simple
+    def __init__(self, subject, body):
+        self.subject = subject
+        self.body = body
+
+    @classmethod
+    def from_bytes(cls, data):
+        text = data.decode(errors='replace')
+        try:
+            subject = text[8:text.index('\n')]
+        except:
+            subject = ''
+        try:
+            body = text[text.index('\nBody:')+6:]
+        except ValueError:
+            body = text
+        return cls(subject, body)
+
+    def to_bytes(self):
+        return ('Subject:'+self.subject+'\nBody:'+self.body).encode()
 

@@ -11,7 +11,7 @@ class Worker(object):
         self._db.execute('create table if not exists worker (obj, trials, extra, timestamp)')
         self._executor = concurrent.futures.ProcessPoolExecutor()
         for obj, trials, extra, timestamp in self._db.execute('select * from worker'):
-            asyncio.get_event_loop().create_task(self._run(packet.Object(obj), trials, extra, timestamp))
+            asyncio.get_event_loop().create_task(self._run(packet.Object.from_bytes(obj), trials, extra, timestamp))
         self.on_object_done = []
 
     @asyncio.coroutine

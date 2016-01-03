@@ -16,7 +16,7 @@ class Inventory(object):
 
     def _cleanup(self):
         for hash, data in self._db.execute('select hash, data from objects where expires < ?', (int(time.time())-3*60*60,)):
-            object = packet.Object(data)
+            object = packet.Object.from_bytes(data)
             for func in self.on_remove_object:
                 func(object)
             self._db.execute('delete from objects where hash = ?', (hash,))
@@ -26,7 +26,7 @@ class Inventory(object):
 
     def get_object(self, hash):
         for data, in self._db.execute('select data from objects where hash = ?', (hash,)):
-            object = packet.Object(data)
+            object = packet.Object.from_bytes(data)
             return object
 
     def add_object(self, object):

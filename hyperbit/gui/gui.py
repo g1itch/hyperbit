@@ -7,7 +7,7 @@ from PyQt5 import uic
 import os.path
 import sys
 
-from hyperbit import base58, wallet, helper
+from hyperbit import base58, objtypes, wallet
 from hyperbit.gui import models, identicon
 
 
@@ -18,7 +18,7 @@ def resource_path(path):
         return os.path.join(os.path.dirname(__file__), path)
 
 
-class NetworkConfig(QDialog):
+class NetworkConfigDialog(QDialog):
     def __init__(self, core, parent=None):
         super().__init__(parent)
         self._core = core
@@ -80,8 +80,8 @@ class ChannelsTab(QSplitter):
         dst = self._channelModel.get_identity_by_row(index2).profile
         subject = self.channels_subject.text()
         body = self.channels_message.toPlainText()
-        message = helper.create_message(subject, body)
-        helper.send_message(src, dst, 2, message, self._core.worker)
+        message = objtypes.SimpleMessage(subject, body)
+        self._core.send_message(src, dst, message)
         self.channels_subject.setText('')
         self.channels_message.setPlainText('')
 
@@ -198,8 +198,8 @@ class MessagesTab(QSplitter):
         subject = thread.subject
         body = self.messages_message.toPlainText()
         parent = thread.longest
-        message = helper.create_message(subject, body, parent)
-        helper.send_message(src, dst, 2, message, self._core.worker)
+        message = objtypes.SimpleMessage('Re: '+subject, body+'\n'+54*'-'+'\n'+parent)
+        self._core.send_message(src, dst, message)
         self.messages_message.setPlainText('')
 
 
@@ -245,7 +245,7 @@ class StatusTab(QWidget):
         self.connections.setText(str(self._core.peers.count_connected()))
 
     def configure_network(self):
-        network_dialog = NetworkConfig(self._core, self)
+        network_dialog = NetworkConfigDialog(self._core, self)
         if self._core.get_config('network.proxy') == 'tor':
             network_dialog.raTor.setChecked(True)
         if self._core.get_config('network.proxy') == 'trusted':

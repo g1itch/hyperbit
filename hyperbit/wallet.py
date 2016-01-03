@@ -1,6 +1,6 @@
 # Copyright 2015 HyperBit developers
 
-from hyperbit import base58, serialize, crypto
+from hyperbit import base58, serialize, crypto, config
 import enum
 
 
@@ -168,7 +168,7 @@ class Wallet(object):
         enckey = crypto.priv_to_pub(deckey)
         ripe = crypto.to_ripe(verkey, enckey)
         self.names.set(ripe, name)
-        address = Address(4, 1, ripe)
+        address = Address(4, config.NETWORK_STREAM, ripe)
         self._db.execute('insert into identities (address, name, sigkey, deckey) values (?, ?, ?, ?)',
                 (address.to_bytes(), type, sigkey, deckey))
         self._db.execute('insert into profiles (address, name, verkey, enckey) values (?, ?, ?, ?)',
@@ -232,7 +232,7 @@ class Names(object):
         self._on_changed_all.remove(callback)
 
     def set(self, ripe, name):
-        if not name or name == Address(4, 1, ripe).to_str():
+        if not name or name == Address(4, config.NETWORK_STREAM, ripe).to_str():
             self._db.execute('delete from names where ripe = ?', (ripe,))
         else:
             self._db.execute('replace into names (ripe, name) values (?, ?)', (ripe, name))
@@ -247,4 +247,4 @@ class Names(object):
         if row:
             return row[0]
         else:
-            return Address(4, 1, ripe).to_str()
+            return Address(4, config.NETWORK_STREAM, ripe).to_str()

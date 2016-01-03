@@ -37,37 +37,38 @@ class Generic(object):
 
 
 class Version(object):
-    def __init__(self, data=None):
+    def __init__(self, version, services, timestamp, dst_services, dst_ip, dst_port, src_services, src_ip, src_port, nonce, user_agent, streams):
         self.command = 'version'
-        if data is None:
-            self.version = 3
-            self.services = 1 # NODE_NETWORK
-            self.timestamp = int(time.time())
-            self.dst_services = 1
-            self.dst_ip = (0).to_bytes(16, byteorder='big')
-            self.dst_port = 8444
-            self.src_services = 1
-            self.src_ip = (0).to_bytes(16, byteorder='big')
-            self.src_port = 8444
-            self.nonce = 0
-            self.useragent = ''
-            self.streams = [1]
-        else:
-            s = serialize.Deserializer(data)
-            self.version = s.uint(4)
-            self.services = s.uint(8)
-            self.timestamp = s.uint(8)
-            self.dst_services = s.uint(8)
-            self.dst_ip = s.bytes(16)
-            self.dst_port = s.uint(2)
-            self.src_services = s.uint(8)
-            self.src_ip = s.bytes(16)
-            self.src_port = s.uint(2)
-            self.nonce = s.uint(8)
-            self.useragent = s.vstr()
-            self.streams = []
-            for i in range(s.vint()):
-                self.streams.append(s.vint())
+        self.version = version
+        self.services = services
+        self.timestamp = timestamp
+        self.dst_services = dst_services
+        self.dst_ip = dst_ip
+        self.dst_port = dst_port
+        self.src_services = src_services
+        self.src_ip = src_ip
+        self.src_port = src_port
+        self.nonce = nonce
+        self.user_agent = user_agent
+        self.streams = streams
+
+    @classmethod
+    def from_bytes(cls, data):
+        s = serialize.Deserializer(data)
+        return cls(
+            version=s.uint(4),
+            services=s.uint(8),
+            timestamp=s.uint(8),
+            dst_services=s.uint(8),
+            dst_ip=s.bytes(16),
+            dst_port=s.uint(2),
+            src_services=s.uint(8),
+            src_ip=s.bytes(16),
+            src_port=s.uint(2),
+            nonce=s.uint(8),
+            user_agent=s.vstr(),
+            streams=[s.vint() for i in range(s.vint())]
+        )
 
     @property
     def data(self):
@@ -82,7 +83,7 @@ class Version(object):
         t.bytes(self.src_ip)
         t.uint(self.src_port, 2)
         t.uint(self.nonce, 8)
-        t.vstr(self.useragent)
+        t.vstr(self.user_agent)
         t.vint(len(self.streams))
         for stream in self.streams:
             t.vint(stream)
@@ -90,8 +91,12 @@ class Version(object):
 
 
 class Verack(object):
-    def __init__(self, data=None):
+    def __init__(self):
         self.command = 'verack'
+
+    @classmethod
+    def from_bytes(cls, data):
+        return cls()
 
     @property
     def data(self):
@@ -100,19 +105,26 @@ class Verack(object):
 Address = collections.namedtuple('Address', ['time', 'stream', 'services', 'ip', 'port'])
 Endpoint = collections.namedtuple('Endpoint', ['ip', 'port'])
 
+
 class Addr(object):
-    def __init__(self, data=None):
+    def __init__(self, addresses):
         self.command = 'addr'
-        self.addresses = []
-        if data is not None:
-            s = serialize.Deserializer(data)
-            for i in range(s.vint()):
-                time = s.uint(8)
-                stream = s.uint(4)
-                services = s.uint(8)
-                ip = s.bytes(16)
-                port = s.uint(2)
-                self.addresses.append(Address(time, stream, services, ip, port))
+        self.addresses = addresses
+
+    @classmethod
+    def from_bytes(cls, data):
+        s = serialize.Deserializer(data)
+        addresses = []
+        for i in range(s.vint()):
+            time = s.uint(8)
+            stream = s.uint(4)
+            services = s.uint(8)
+            ip = s.bytes(16)
+            port = s.uint(2)
+            addresses.append(Address(time, stream, services, ip, port))
+        return cls(
+            addresses
+        )
 
     @property
     def data(self):
@@ -128,13 +140,16 @@ class Addr(object):
 
 
 class Inv(object):
-    def __init__(self, data=None):
+    def __init__(self, hashes):
         self.command = 'inv'
-        self.hashes = []
-        if data is not None:
-            s = serialize.Deserializer(data)
-            for i in range(s.vint()):
-                self.hashes.append(s.bytes(32))
+        self.hashes = hashes
+
+    @classmethod
+    def from_bytes(cls, data):
+        s = serialize.Deserializer(data)
+        return cls(
+            hashes=[s.bytes(32) for i in range(s.vint())]
+        )
 
     @property
     def data(self):
@@ -146,13 +161,16 @@ class Inv(object):
 
 
 class Getdata(object):
-    def __init__(self, data=None):
+    def __init__(self, hashes):
         self.command = 'getdata'
-        self.hashes = []
-        if data is not None:
-            s = serialize.Deserializer(data)
-            for i in range(s.vint()):
-                self.hashes.append(s.bytes(32))
+        self.hashes = hashes
+
+    @classmethod
+    def from_bytes(cls, data):
+        s = serialize.Deserializer(data)
+        return cls(
+            hashes=[s.bytes(32) for i in range(s.vint())]
+        )
 
     @property
     def data(self):
@@ -164,23 +182,26 @@ class Getdata(object):
 
 
 class Object(object):
-    def __init__(self, data=None):
+    def __init__(self, nonce, expires, type, version, stream, payload):
         self.command = 'object'
-        if data is None:
-            self.nonce = 0
-            self.expires = int(time.time() + 4 * 24 * 60 * 60) # FIXME add some random time too
-            self.type = 0
-            self.version = 0
-            self.stream = 1
-            self.payload = b''
-        else:
-            s = serialize.Deserializer(data)
-            self.nonce = s.uint(8)
-            self.expires = s.uint(8)
-            self.type = s.uint(4)
-            self.version = s.vint()
-            self.stream = s.vint()
-            self.payload = s.bytes()
+        self.nonce = nonce
+        self.expires = expires
+        self.type = type
+        self.version = version
+        self.stream = stream
+        self.payload = payload
+
+    @classmethod
+    def from_bytes(cls, data):
+        s = serialize.Deserializer(data)
+        return cls(
+            nonce=s.uint(8),
+            expires=s.uint(8),
+            type=s.uint(4),
+            version=s.vint(),
+            stream=s.vint(),
+            payload=s.bytes()
+        )
 
     @property
     def hash(self):
@@ -206,8 +227,7 @@ class Object(object):
 
     def check_pow(self, trials, extra, timestamp):
         ttl = int(self.expires - timestamp)
-        completed = pow.check(self.data[8:], trials, extra, ttl, self.nonce)
-        return completed
+        return pow.check(self.data[8:], trials, extra, ttl, self.nonce)
 
     @property
     def data(self):
