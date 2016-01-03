@@ -8,7 +8,7 @@ import time
 import socket
 import socks
 
-from hyperbit import config, crypto, net, packet
+from hyperbit import config, crypto, net, packet, __version__
 
 
 class KnownPeer(object):
@@ -297,7 +297,7 @@ class Connection2(object):
             src_ip=16*b'\x00',
             src_port=8444,  # FIXME send correct port number
             nonce=self.peers.client_nonce,
-            user_agent=config.USER_AGENT,
+            user_agent='/HyperBit:'+__version__+'/',
             streams=[config.NETWORK_STREAM]
         ))
         generic = yield from self._c.recv_packet()
