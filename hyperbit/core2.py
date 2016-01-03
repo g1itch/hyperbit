@@ -4,6 +4,7 @@ import appdirs
 import asyncio
 import os
 import sqlite3
+import time
 
 from hyperbit import config, crypto, inventory, message, network, objscanner, objtypes, wallet, worker, packet
 
@@ -113,7 +114,7 @@ class Core(object):
         if object.type == objtypes.Type.msg and object.version == 1:
             self.do_scan_msg_1(object, identity)
 
-    def send_message(self, src, dst, encoding, message):
+    def send_message(self, src, dst, message):
         object = packet.Object(
             nonce=0,
             expires=int(time.time() + 4*24*60*60 + crypto.randint(-60*60, 60*60)),
