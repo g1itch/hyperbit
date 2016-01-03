@@ -76,6 +76,8 @@ class PeerManager(object):
         self._connections = []
         self._endpoints = dict()
 
+        self._trusted_status = 0
+
         for peer in config.KNOWN_PEERS:
             self.new_peer(0, 1, peer[0], peer[1], False)
 
@@ -117,10 +119,10 @@ class PeerManager(object):
         return self._peers.values()
 
     def count_connected(self):
-        return self._db.execute('select count(*) from peers where status = 2').fetchone()[0]
+        return self._db.execute('select count(*) from peers where status = 2').fetchone()[0] + (self._trusted_status == 2)
 
     def count_pending_and_connected(self):
-        return self._db.execute('select count(*) from peers where status = 1 or status = 2').fetchone()[0]
+        return self._db.execute('select count(*) from peers where status = 1 or status = 2').fetchone()[0] + (self._trusted_status in [1, 2])
 
     @asyncio.coroutine
     def run(self):
@@ -137,10 +139,19 @@ class PeerManager(object):
                 host = self._core.get_config('network.trusted_host')
                 port = self._core.get_config('network.trusted_port')
                 print('trying', host, port)
+                self._trusted_status = 1
                 c = PacketConnection(net.Connection(net.ipv6(host), port))
                 conn = Connection2(om=self.om, peers=self, connection=c)
                 self._connections.append(conn)
+                def on_connect():
+                    self._trusted_status = 2
+                    for func in self.on_stats_changed:
+                        func()
+                conn.on_connect.append(on_connect)
                 yield from conn.run()
+                self._trusted_status = 0
+                for func in self.on_stats_changed:
+                    func()
                 yield from asyncio.sleep(10)
         else:
             while True:

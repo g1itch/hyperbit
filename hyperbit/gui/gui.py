@@ -225,9 +225,6 @@ class StatusTab(QWidget):
         self._core.inv.on_stats_changed.append(self.on_stats_changed)
         self.on_stats_changed()
 
-        self._connectionModel = models.ConnectionModel(self._core.peers)
-        self.status_connections.setModel(self._connectionModel)
-
         self.configureNetwork.clicked.connect(self._configure_network2)
 
         self.about.clicked.connect(lambda: QMessageBox.about(self, 'HyperBit',
