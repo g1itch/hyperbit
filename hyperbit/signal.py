@@ -6,6 +6,7 @@ import weakref
 
 class Signal(object):
     def __init__(self):
+        """A signal class to provide subscription based events."""
         self._slots = dict()
         self._names = dict()
 
@@ -25,6 +26,7 @@ class Signal(object):
                 return func
 
     def connect(self, func, *args):
+        """Register a function to be called when this signal is emitted."""
         if hasattr(func, '__call__'):
             ref = self._ref(func)
             assert ref not in self._slots
@@ -36,6 +38,7 @@ class Signal(object):
             self._names[func].connect(*args)
 
     def disconnect(self, func, *args):
+        """Remove a previously added function so it will no longer get called."""
         if hasattr(func, '__call__'):
             assert len(args) == 0
             del self._slots[self._ref(func)]
@@ -45,6 +48,7 @@ class Signal(object):
             self._names[func].disconnect(*args)
 
     def emit(self, *args):
+        """Call all functions connected to this signal."""
         for ref, bound in self._slots.copy().values():
             if isinstance(ref, weakref.ref):
                 func = ref()

@@ -7,12 +7,14 @@ from hyperbit import packet, pow, signal
 
 class Worker(object):
     def __init__(self, db):
+        """Worker that can compute object POWs."""
         self._db = db
         self._db.execute('create table if not exists worker (obj, trials, extra, timestamp)')
         self._executor = concurrent.futures.ProcessPoolExecutor()
         for obj, trials, extra, timestamp in self._db.execute('select * from worker'):
             asyncio.get_event_loop().create_task(self._run(packet.Object.from_bytes(obj), trials, extra, timestamp))
         self.on_object_done = signal.Signal()
+        """Called with an object when its POW has been computed."""
 
     @asyncio.coroutine
     def _run(self, obj, trials, extra, timestamp):
@@ -28,5 +30,6 @@ class Worker(object):
         self.on_object_done.emit(obj)
 
     def add_object(self, obj, trials, extra, timestamp):
+        """Queue an object for POW computation."""
         asyncio.get_event_loop().create_task(self._run(obj, trials, extra, timestamp))
 

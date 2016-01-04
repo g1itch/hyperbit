@@ -4,6 +4,7 @@ from hyperbit import crypto
 
 
 def encode_raw(data):
+    """Encode a bytes object as a Base58 string."""
     map = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     result = ''
     number = int.from_bytes(data, byteorder='big', signed=False)
@@ -15,6 +16,7 @@ def encode_raw(data):
 
 
 def decode_raw(chars):
+    """Decode a Base58 string to a bytes object."""
     map = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     number = 0
     for char in chars:
@@ -25,6 +27,7 @@ def decode_raw(chars):
 
 
 def encode(data, prepend_bm=False):
+    """Encode a Bitmessage adress as a string."""
     data += crypto.sha512d(data)[:4]
     text = encode_raw(data)
     if prepend_bm:
@@ -33,6 +36,7 @@ def encode(data, prepend_bm=False):
 
 
 def decode(chars):
+    """Decode a Bitmessage adress from a string."""
     chars = chars.strip()
     if chars[:3] == 'BM-':
         chars = chars[3:]
@@ -43,12 +47,14 @@ def decode(chars):
 
 
 def encode_wif(data):
+    """Encode private key in WIF format."""
     data = b'\x80'+data
     data = data+crypto.sha256d(data)[:4]
     return encode_raw(data)
 
 
 def decode_wif(chars):
+    """Decode private key from WIF format."""
     chars = chars.strip()
     data = decode_raw(chars)
     checksum = crypto.sha256d(data[:-4])[:4]
