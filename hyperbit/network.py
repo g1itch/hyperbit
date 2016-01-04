@@ -196,6 +196,7 @@ class PeerManager(object):
     @asyncio.coroutine
     def _run2(self):
         listener = net.Listener(self._core.get_config('network.listen_port'))
+        listener.listen()
         while True:
             connection = yield from listener.accept()
             c = PacketConnection(connection)
@@ -247,14 +248,17 @@ class PeerManager(object):
 
 class PacketConnection(object):
     def __init__(self, connection):
+        """Connection for sending and receiving Bitmessage packets"""
         self._c = connection
         self.remote_host = connection.remote_host
 
     @asyncio.coroutine
     def connect(self):
+        """Establish a connection. Return True on succes, else return False."""
         return (yield from self._c.connect())
 
     def send_packet(self, payload):
+        """Send a Bitmessage packet."""
         magic = 0xe9beb4d9
         command = payload.command
         payloaddata = payload.data
@@ -266,21 +270,16 @@ class PacketConnection(object):
 
     @asyncio.coroutine
     def recv_packet(self):
-        headerdata = b''
-        while len(headerdata) < 24:
-            buf = yield from self._c.recv(24 - len(headerdata))
-            if not buf:
-                return None
-            headerdata += buf
+        """Receive a Bitmessage packet, or return None in case of failure."""
+        headerdata = yield from self._c.recv(24)
+        if headerdata is None:
+            return None
         header = packet.Header.from_bytes(headerdata)
         if header.magic != 0xe9beb4d9:
             return None
-        payloaddata = b''
-        while len(payloaddata) < header.length:
-            buf = yield from self._c.recv(header.length - len(payloaddata))
-            if not buf:
-                return None
-            payloaddata += buf
+        payloaddata = yield from self._c.recv(header.length)
+        if payloaddata is None:
+            return None
         if header.checksum != crypto.sha512(payloaddata)[:4]:
             return None
         return packet.Generic(header.command, payloaddata)
