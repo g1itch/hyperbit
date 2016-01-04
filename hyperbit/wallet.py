@@ -1,6 +1,6 @@
 # Copyright 2015-2016 HyperBit developers
 
-from hyperbit import base58, serialize, crypto, config
+from hyperbit import base58, serialize, crypto, config, signal
 import enum
 
 
@@ -131,8 +131,8 @@ class Wallet(object):
         self._db = db
         self._db.execute('create table if not exists identities (address unique, name, sigkey, deckey)')
         self._db.execute('create table if not exists profiles (address unique, name, verkey, enckey)')
-        self.on_add_identity = []
-        self.on_remove_identity = []
+        self.on_add_identity = signal.Signal()
+        self.on_remove_identity = signal.Signal()
         self.names = Names(self._db)
 
         for identity in self.identities:
@@ -174,8 +174,7 @@ class Wallet(object):
         self._db.execute('insert into profiles (address, name, verkey, enckey) values (?, ?, ?, ?)',
                 (address.to_bytes(), type, b'\x04'+verkey, b'\x04'+enckey))
         identity = Identity2(self._db, address)
-        for func in self.on_add_identity:
-            func(identity)
+        self.on_add_identity.emit(identity)
         return identity
 
     def get_identity(self, address):
@@ -196,8 +195,7 @@ class Wallet(object):
         return profiles
 
     def remove_identity(self, identity):
-        for func in self.on_remove_identity:
-            func(identity)
+        self.on_remove_identity.emit(identity)
         self._db.execute('delete from identities '
                          'where address = ?',
                          (identity.address.to_bytes(),))

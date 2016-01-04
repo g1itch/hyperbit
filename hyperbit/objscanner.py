@@ -3,6 +3,7 @@
 import asyncio
 import time
 
+from hyperbit import signal
 
 class Scanner(object):
     def __init__(self, db, inv, wal):
@@ -13,8 +14,8 @@ class Scanner(object):
             self._count = count
         self._inv = inv
         self._wal = wal
-        self.on_change = []
-        self.on_scan_item = []
+        self.on_change = signal.Signal()
+        self.on_scan_item = signal.Signal()
         if self._count > 0:
             asyncio.get_event_loop().create_task(self._run())
 
@@ -27,8 +28,7 @@ class Scanner(object):
     @asyncio.coroutine
     def _run(self):
         last = time.time()
-        for func in self.on_change:
-            func()
+        self.on_change.emit()
         while self._index < self._count:
             #for count, in self._db.execute('select count(*) from scans'):
             #    print(self._index, self._count, count)
@@ -41,18 +41,15 @@ class Scanner(object):
                         break
                 else:
                     identity = None
-                for func in self.on_scan_item:
-                    func(object, identity)
+                self.on_scan_item.emit(object, identity)
                 self._index += 1
                 if time.time() >= last + 0.1:
                     last = time.time()
-                    for func in self.on_change:
-                        func()
+                    self.on_change.emit()
                 yield
         self._index = 0
         self._count = 0
-        for func in self.on_change:
-            func()
+        self.on_change.emit()
 
     @property
     def value(self):

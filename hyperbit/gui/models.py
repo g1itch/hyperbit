@@ -65,8 +65,8 @@ class IdentityModel(QAbstractTableModel):
         self.identities = []
         for identity in wal.identities:
             self.identities.append(identity)
-        wal.on_add_identity.append(self._on_add_identity)
-        wal.on_remove_identity.append(self._on_remove_identity)
+        wal.on_add_identity.connect(self._on_add_identity)
+        wal.on_remove_identity.connect(self._on_remove_identity)
 
     def _on_add_identity(self, identity):
         self.beginInsertRows(QModelIndex(), len(self.identities), len(self.identities))
@@ -159,8 +159,8 @@ class ObjectModel(QAbstractTableModel):
         self.hashes = []
         for hash in self.inv.get_hashes():
             self.hashes.append(hash)
-        inv.on_add_object.append(self._on_add_object)
-        inv.on_remove_object.append(self._on_remove_object)
+        inv.on_add_object.connect(self._on_add_object)
+        inv.on_remove_object.connect(self._on_remove_object)
 
     def _on_add_object(self, object):
         self.beginInsertRows(QModelIndex(), len(self.hashes), len(self.hashes))
@@ -215,8 +215,8 @@ class ThreadModel(QAbstractTableModel):
         self.threads = []
         for thread in list.threads:
             self.threads.append(thread)
-        list.on_add_thread.append(self._on_add_thread)
-        list.on_remove_thread.append(self._on_remove_thread)
+        list.on_add_thread.connect(self._on_add_thread)
+        list.on_remove_thread.connect(self._on_remove_thread)
 
     def _on_add_thread(self, thread):
         self.beginInsertRows(QModelIndex(), len(self.threads), len(self.threads))

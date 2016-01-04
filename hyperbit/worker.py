@@ -2,7 +2,7 @@
 
 import asyncio, concurrent.futures
 
-from hyperbit import packet, pow
+from hyperbit import packet, pow, signal
 
 
 class Worker(object):
@@ -12,7 +12,7 @@ class Worker(object):
         self._executor = concurrent.futures.ProcessPoolExecutor()
         for obj, trials, extra, timestamp in self._db.execute('select * from worker'):
             asyncio.get_event_loop().create_task(self._run(packet.Object.from_bytes(obj), trials, extra, timestamp))
-        self.on_object_done = []
+        self.on_object_done = signal.Signal()
 
     @asyncio.coroutine
     def _run(self, obj, trials, extra, timestamp):
@@ -25,8 +25,7 @@ class Worker(object):
         nonce = yield from loop.run_in_executor(self._executor, pow.pow, data, trials, extra, ttl)
         self._db.execute('delete from worker where obj = ?', (obj.data,))
         obj.nonce = nonce
-        for func in self.on_object_done:
-            func(obj)
+        self.on_object_done.emit(obj)
 
     def add_object(self, obj, trials, extra, timestamp):
         asyncio.get_event_loop().create_task(self._run(obj, trials, extra, timestamp))

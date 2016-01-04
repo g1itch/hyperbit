@@ -221,8 +221,8 @@ class StatusTab(QWidget):
         uic.loadUi(resource_path('data/StatusTab.ui'), self)
         self._core = core
 
-        self._core.peers.on_stats_changed.append(self.on_stats_changed)
-        self._core.inv.on_stats_changed.append(self.on_stats_changed)
+        self._core.peers.on_stats_changed.connect(self.on_stats_changed)
+        self._core.inv.on_stats_changed.connect(self.on_stats_changed)
         self.on_stats_changed()
 
         self.configureNetwork.clicked.connect(self._configure_network2)
@@ -293,7 +293,7 @@ class MainWindow(QMainWindow):
         self._progressBar.setFormat('Scanning (%v / %m)')
         self.statusBar.addPermanentWidget(self._progressBar, 0)
         self._progressBar.hide()
-        self._core.scanner.on_change.append(self._updateProgress)
+        self._core.scanner.on_change.connect(self._updateProgress)
 
     def _updateProgress(self):
         if self._core.scanner.max < 100:

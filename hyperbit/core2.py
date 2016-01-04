@@ -20,15 +20,15 @@ class Core(object):
         self._db.execute('create table if not exists config (id unique, value)')
         self.inv = inventory.Inventory(self._db)
         self.peers = network.PeerManager(self, self._db, self.inv)
-        self.inv.on_add_object.append(self.peers.send_inv)
+        self.inv.on_add_object.connect(self.peers.send_inv)
         self.wal = wallet.Wallet(self._db)
         self.list = message.ThreadList(self._db)
         self.scanner = objscanner.Scanner(self._db, self.inv, self.wal)
         self.worker = worker.Worker(self._db)
-        self.worker.on_object_done.append(self.inv.add_object)
-        self.wal.on_add_identity.append(self.scan_identity)
-        self.inv.on_add_object.append(self.scan_object)
-        self.scanner.on_scan_item.append(self.do_scan)
+        self.worker.on_object_done.connect(self.inv.add_object)
+        self.wal.on_add_identity.connect(self.scan_identity)
+        self.inv.on_add_object.connect(self.scan_object)
+        self.scanner.on_scan_item.connect(self.do_scan)
 
     @asyncio.coroutine
     def _save(self):

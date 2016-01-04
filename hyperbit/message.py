@@ -1,5 +1,6 @@
 # Copyright 2015-2016 HyperBit developers
 
+from hyperbit import signal
 
 class Comment2(object):
     def __init__(self, db, rowid):
@@ -108,20 +109,18 @@ class ThreadList(object):
         self._db = db
         self._db.execute('create table if not exists threads (channel, creator, subject, longest, unread)')
         self._db.execute('create table if not exists comments (thread_id, parent_text, creator, text)')
-        self.on_add_thread = []
-        self.on_remove_thread = []
+        self.on_add_thread = signal.Signal()
+        self.on_remove_thread = signal.Signal()
 
     def new_thread(self, channel, creator, subject):
         rowid = self._db.execute('insert into threads (channel, creator, subject, longest, unread) values (?, ?, ?, ?, 0)',
                 (channel, creator, subject, '')).lastrowid
         thread = Thread2(self._db, rowid)
-        for func in self.on_add_thread:
-            func(thread)
+        self.on_add_thread.emit(thread)
         return thread
 
     def remove_thread(self, thread):
-        for func in self.on_remove_thread:
-            func(thread)
+        self.on_remove_thread.emit(thread)
         self._db.execute('delete from comments '
                              'where thread_id = ?',
                              (thread._rowid,))

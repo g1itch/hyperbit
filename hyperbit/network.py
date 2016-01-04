@@ -8,32 +8,29 @@ import time
 import socket
 import socks
 
-from hyperbit import config, crypto, net, packet, __version__
+from hyperbit import config, crypto, net, packet, signal, __version__
 
 
 class KnownPeer(object):
     def __init__(self, db, host):
         self._db = db
         self._host = host
-        self.on_change = []
+        self.on_change = signal.Signal()
 
     def set_pending(self):
         self._db.execute('update peers set status = 1, tries = tries + 1 where host = ?',
                 (self._host,))
-        for func in self.on_change:
-            func()
+        self.on_change.emit()
 
     def set_connected(self):
         self._db.execute('update peers set status = 2, tries = 0, timestamp = ? where host = ?',
                 (int(time.time()), self._host))
-        for func in self.on_change:
-            func()
+        self.on_change.emit()
 
     def set_disconnected(self):
         self._db.execute('update peers set status = 0 where host = ?',
                 (self._host,))
-        for func in self.on_change:
-            func()
+        self.on_change.emit()
 
     @property
     def timestamp(self):
@@ -54,8 +51,7 @@ class KnownPeer(object):
     @port.setter
     def port(self, port):
         self._db.execute('update peers set port = ? where host = ?', (port, self._host))
-        for func in self.on_change:
-            func()
+        self.on_change.emit()
 
 
 class PeerManager(object):
@@ -70,8 +66,8 @@ class PeerManager(object):
 
         self.om = inv
         self.client_nonce = int.from_bytes(os.urandom(8), byteorder='big', signed=False)
-        self.on_add_peer = []
-        self.on_stats_changed = []
+        self.on_add_peer = signal.Signal()
+        self.on_stats_changed = signal.Signal()
 
         self._connections = []
         self._endpoints = dict()
@@ -108,10 +104,8 @@ class PeerManager(object):
                     (timestamp, services, host, port))
         peer = KnownPeer(self._db, host)
         self._peers[host] = peer
-        for func in self.on_add_peer:
-            func(peer)
-        for func in self.on_stats_changed:
-            func()
+        self.on_add_peer.emit(peer)
+        self.on_stats_changed.emit()
         return peer
 
     @property
@@ -145,13 +139,11 @@ class PeerManager(object):
                 self._connections.append(conn)
                 def on_connect():
                     self._trusted_status = 2
-                    for func in self.on_stats_changed:
-                        func()
-                conn.on_connect.append(on_connect)
+                    self.on_stats_changed.emit()
+                conn.on_connect.connect(on_connect)
                 yield from conn.run()
                 self._trusted_status = 0
-                for func in self.on_stats_changed:
-                    func()
+                self.on_stats_changed.emit()
                 yield from asyncio.sleep(10)
         else:
             while True:
@@ -171,19 +163,17 @@ class PeerManager(object):
             c = PacketConnection(connection)
             conn = Connection2(om=self.om, peers=self, connection=c)
             self._connections.append(conn)
-            conn.on_connect.append(lambda: self._on_connect(connection.remote_host.packed))
-            conn.on_disconnect.append(lambda: self._on_disconnect(connection.remote_host.packed))
+            conn.on_connect.connect(lambda: self._on_connect(connection.remote_host.packed))
+            conn.on_disconnect.connect(lambda: self._on_disconnect(connection.remote_host.packed))
             asyncio.get_event_loop().create_task(conn.run())
 
     def _on_connect(self, host):
         self._peers[host].set_connected()
-        for func in self.on_stats_changed:
-            func()
+        self.on_stats_changed.emit()
 
     def _on_disconnect(self, host):
         self._peers[host].set_disconnected()
-        for func in self.on_stats_changed:
-            func()
+        self.on_stats_changed.emit()
 
     def _open_one(self):
         best_peer = self.get_best_peer()
@@ -195,8 +185,8 @@ class PeerManager(object):
             c = PacketConnection(net.Connection(net.ipv6(host), port))
             conn = Connection2(om=self.om, peers=self, connection=c)
             self._connections.append(conn)
-            conn.on_connect.append(lambda: self._on_connect(host))
-            conn.on_disconnect.append(lambda: self._on_disconnect(host))
+            conn.on_connect.connect(lambda: self._on_connect(host))
+            conn.on_disconnect.connect(lambda: self._on_disconnect(host))
             asyncio.get_event_loop().create_task(conn.run())
             #conn.set_host_port(host, port)
 
@@ -257,8 +247,8 @@ class Connection2(object):
         self.peers = peers
         self._c = connection
 
-        self.on_connect = []
-        self.on_disconnect = []
+        self.on_connect = signal.Signal()
+        self.on_disconnect = signal.Signal()
 
         self.got_version = False
         self.got_verack = False
@@ -286,16 +276,14 @@ class Connection2(object):
                 hashes=hashes[i:i+50000]
             ))
         self.remote_port = payload.src_port
-        for func in self.on_connect:
-            func()
+        self.on_connect.emit()
         self.got_version = True
 
     @asyncio.coroutine
     def run(self):
         connected = yield from self._c.connect()
         if not connected:
-            for func in self.on_disconnect:
-                func()
+            self.on_disconnect.emit()
             return
         self._c.send_packet(packet.Version(
             version=3,
@@ -347,7 +335,6 @@ class Connection2(object):
                     self.om.add_object(object)
             generic = yield from self._c.recv_packet()
 
-        for func in self.on_disconnect:
-            func()
+        self.on_disconnect.emit()
 
         self.peers._connections.remove(self)
