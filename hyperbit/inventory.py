@@ -1,12 +1,16 @@
 # Copyright 2015-2016 HyperBit developers
 
 import asyncio, pickle, time
+import logging
 
 from hyperbit import config, objtypes, packet, signal
+
+logger = logging.getLogger(__name__)
 
 
 class Inventory(object):
     def __init__(self, db):
+        logger.info('start')
         self._db = db
         self._db.execute('create table if not exists objects (hash unique, brink, expires, data)')
         self.on_add_object = signal.Signal()

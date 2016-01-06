@@ -2,15 +2,20 @@
 
 import appdirs
 import asyncio
+import binascii
+import logging
 import os
 import sqlite3
 import time
 
 from hyperbit import config, crypto, inventory, message, network, objscanner, objtypes, wallet, worker, packet
 
+logger = logging.getLogger(__name__)
+
 
 class Core(object):
     def __init__(self):
+        logger.info('start')
         user_config_dir = appdirs.user_config_dir('hyperbit', '')
         os.makedirs(user_config_dir, 0o700, exist_ok=True)
         self._db = sqlite3.connect(os.path.join(user_config_dir, 'hyperbit.sqlite3'))
@@ -48,11 +53,13 @@ class Core(object):
         yield from self.peers.run()
 
     def scan_object(self, object):
+        logger.info('scan object with hash %s', binascii.hexlify(object.hash).decode())
         self.scanner.scan(object.hash, None)
         for identity in self.wal.identities:
             self.scanner.scan(object.hash, identity)
 
     def scan_identity(self, identity):
+        logger.info('scan identity with address %s', identity.address.to_str())
         for hash in self.inv.get_hashes():
             self.scanner.scan(hash, identity)
 

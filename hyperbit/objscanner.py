@@ -1,12 +1,17 @@
 # Copyright 2015-2016 HyperBit developers
 
 import asyncio
+import logging
 import time
 
 from hyperbit import signal
 
+logger = logging.getLogger(__name__)
+
+
 class Scanner(object):
     def __init__(self, db, inv, wal):
+        logger.info('start')
         self._db = db
         self._db.execute('create table if not exists scans (hash, address, unique(hash, address))')
         self._index = 0

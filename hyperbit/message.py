@@ -1,6 +1,11 @@
 # Copyright 2015-2016 HyperBit developers
 
+import logging
+
 from hyperbit import signal
+
+logger = logging.getLogger(__name__)
+
 
 class Comment2(object):
     def __init__(self, db, rowid):
@@ -106,6 +111,7 @@ class Thread2(object):
 
 class ThreadList(object):
     def __init__(self, db):
+        logger.info('start')
         self._db = db
         self._db.execute('create table if not exists threads (channel, creator, subject, longest, unread)')
         self._db.execute('create table if not exists comments (thread_id, parent_text, creator, text)')

@@ -3,12 +3,15 @@
 import asyncio
 import enum
 import ipaddress
+import logging
 import os
 import time
 import socket
 import socks
 
 from hyperbit import config, crypto, net, packet, signal, __version__
+
+logger = logging.getLogger(__name__)
 
 
 class KnownPeer(object):
@@ -56,6 +59,7 @@ class KnownPeer(object):
 
 class PeerManager(object):
     def __init__(self, core, db, inv):
+        logger.info('start')
         self._core = core
         self._db = db
         self._db.execute('create table if not exists peers (timestamp, services, host unique, port, status, tries)')
@@ -121,18 +125,21 @@ class PeerManager(object):
     @asyncio.coroutine
     def run(self):
         if self._core.get_config('network.proxy') == 'tor':
+            logger.info('connecting through tor')
             if self._core.get_config('network.proxy') == 'tor':
                 host = self._core.get_config('network.tor_host')
                 port = self._core.get_config('network.tor_port')
                 socks.set_default_proxy(socks.PROXY_TYPE_SOCKS5, host, port, True)
                 socket.socket = socks.socksocket
         elif self._core.get_config('network.proxy') == 'disabled':
+            logger.info('connecting directly to the internet')
             asyncio.get_event_loop().create_task(self._run2())
         if self._core.get_config('network.proxy') == 'trusted':
+            logger.info('connecting to trusted peer')
             while True:
                 host = self._core.get_config('network.trusted_host')
                 port = self._core.get_config('network.trusted_port')
-                print('trying', host, port)
+                logger.info('trying %s %s', host, port)
                 self._trusted_status = 1
                 c = PacketConnection(net.Connection(net.ipv6(host), port))
                 conn = Connection2(om=self.om, peers=self, connection=c)
@@ -181,7 +188,7 @@ class PeerManager(object):
         if best_peer is not None:
             host = best_peer.host
             port = best_peer.port
-            print('trying', ipaddress.ip_address(host), port)
+            logger.info('trying %s %s', ipaddress.ip_address(host), port)
             best_peer.set_pending()
             c = PacketConnection(net.Connection(net.ipv6(host), port))
             conn = Connection2(om=self.om, peers=self, connection=c)
@@ -214,6 +221,7 @@ class PacketConnection(object):
 
     def send_packet(self, payload):
         """Send a Bitmessage packet."""
+        logger.info('sending %s packet', payload.command)
         magic = 0xe9beb4d9
         command = payload.command
         payloaddata = payload.data
@@ -237,6 +245,7 @@ class PacketConnection(object):
             return None
         if header.checksum != crypto.sha512(payloaddata)[:4]:
             return None
+        logger.info('received %s packet', header.command)
         return packet.Generic(header.command, payloaddata)
 
 
@@ -266,7 +275,7 @@ class Connection2(object):
         assert payload.version >= 3
         assert config.NETWORK_STREAM in payload.streams
         self.remote_user_agent = payload.user_agent
-        print(payload.version, payload.user_agent)
+        logger.info('remote user agent is %s', payload.user_agent)
         self._c.send_packet(packet.Verack())
         self._c.send_packet(packet.Addr(self.peers.get_addresses()))
         hashes = self.om.get_hashes_for_send()
@@ -284,6 +293,7 @@ class Connection2(object):
         if not connected:
             self.on_disconnect.emit()
             return
+        logger.info('connected')
         self._c.send_packet(packet.Version(
             version=3,
             services=1,
@@ -333,7 +343,7 @@ class Connection2(object):
                     object = packet.Object.from_bytes(generic.data)
                     self.om.add_object(object)
             generic = yield from self._c.recv_packet()
-
+        logger.info('disconnected')
         self.on_disconnect.emit()
 
         self.peers._connections.remove(self)

@@ -2,6 +2,9 @@
 
 from hyperbit import base58, serialize, crypto, config, signal
 import enum
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class IdentityType(enum.IntEnum):
@@ -128,6 +131,7 @@ class Identity2(object):
 
 class Wallet(object):
     def __init__(self, db):
+        logger.info('start')
         self._db = db
         self._db.execute('create table if not exists identities (address unique, name, sigkey, deckey)')
         self._db.execute('create table if not exists profiles (address unique, name, verkey, enckey)')
