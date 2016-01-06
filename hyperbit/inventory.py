@@ -1,13 +1,17 @@
 # Copyright 2015-2016 HyperBit developers
 
 import asyncio
+import logging
 import time
 
 from hyperbit import config, packet
 
+logger = logging.getLogger(__name__)
+
 
 class Inventory():
     def __init__(self, db):
+        logger.info('start')
         self._db = db
         self._db.execute(
             'CREATE TABLE IF NOT EXISTS objects'

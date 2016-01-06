@@ -1,8 +1,11 @@
 # Copyright 2015-2016 HyperBit developers
 
 import enum
+import logging
 
 from hyperbit import base58, serialize, crypto, config
+
+logger = logging.getLogger(__name__)
 
 
 class IdentityType(enum.IntEnum):
@@ -145,6 +148,7 @@ class Identity2(object):
 
 class Wallet(object):
     def __init__(self, db):
+        logger.info('start')
         self._db = db
         self._db.execute(
             'CREATE TABLE IF NOT EXISTS identities'

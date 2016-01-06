@@ -2,13 +2,18 @@
 
 import asyncio
 import concurrent.futures
+import logging
 
 from hyperbit import packet, pow
+
+logger = logging.getLogger(__name__)
 
 
 class Worker(object):
     """A worker that can compute object POWs"""
     def __init__(self, db):
+        """Worker that can compute object PoWs."""
+        logger.info('start')
         self._db = db
         self._db.execute(
             'CREATE TABLE IF NOT EXISTS worker (obj, trials, extra, timestamp)'
@@ -37,7 +42,10 @@ class Worker(object):
         for func in self.on_object_done:
             func(obj)
 
+        logger.info('object nonce computed')
+
     def add_object(self, obj, trials, extra, timestamp):
         """Queue an object for POW computation."""
+        logger.info('compute nonce for object of length %s', len(obj.data))
         asyncio.get_event_loop().create_task(self._run(
             obj, trials, extra, timestamp))
