@@ -237,7 +237,7 @@ class StatusTab(QWidget):
         self.aboutQt.clicked.connect(lambda: QMessageBox.aboutQt(self))
 
     def on_stats_changed(self):
-        self.objects.setText(str(self._core.inv.count()))
+        self.objects.setText('{} ({:.1f} MB)'.format(self._core.inv.count(), self._core.inv.get_total_size()/1e6))
         self.peers.setText(str(self._core.peers.count_all()))
         self.connections.setText(str(self._core.peers.count_connected()))
 

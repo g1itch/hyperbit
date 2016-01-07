@@ -17,13 +17,14 @@ class Core(object):
     def __init__(self):
         logger.info('start')
         user_config_dir = appdirs.user_config_dir('hyperbit', '')
+        self._dir = user_config_dir
         os.makedirs(user_config_dir, 0o700, exist_ok=True)
         self._db = sqlite3.connect(os.path.join(user_config_dir, 'hyperbit.sqlite3'))
         self._db.execute('pragma synchronous = off')
         self._db.execute('pragma locking_mode = exclusive')
-
         self._db.execute('create table if not exists config (id unique, value)')
         self.inv = inventory.Inventory(self._db)
+        self.inv.load(self._dir)
         self.peers = network.PeerManager(self, self._db, self.inv)
         self.inv.on_add_object.connect(self.peers.send_inv)
         self.wal = wallet.Wallet(self._db)
@@ -34,6 +35,10 @@ class Core(object):
         self.wal.on_add_identity.connect(self.scan_identity)
         self.inv.on_add_object.connect(self.scan_object)
         self.scanner.on_scan_item.connect(self.do_scan)
+
+    def save(self):
+        logger.info('save')
+        self.inv.save(self._dir)
 
     @asyncio.coroutine
     def _save(self):

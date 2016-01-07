@@ -17,6 +17,7 @@ def main():
     asyncio.set_event_loop(quamash.QEventLoop(app))
 
     core = core2.Core()
+    app.aboutToQuit.connect(core.save)
     window = gui.MainWindow(core)
     if not core.get_config('network.proxy'):
         if not window.configure_network():
