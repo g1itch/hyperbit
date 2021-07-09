@@ -1,13 +1,15 @@
 # Copyright 2015-2016 HyperBit developers
 
+import hashlib
+import os
+
 from cryptography.hazmat.backends import openssl
+from cryptography.hazmat.primitives import hashes, padding
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.hmac import HMAC
-from cryptography.hazmat.primitives import hashes, padding
+
 from hyperbit import serialize
-import hashlib
-import os
 
 
 def _point_multiply(priv, curve=ec.SECP256K1()):
@@ -34,7 +36,8 @@ def _priv_to_private(privkey):
     private_value = int.from_bytes(privkey, 'big')
     x, y = _point_multiply(private_value)
     public_numbers = ec.EllipticCurvePublicNumbers(x, y, ec.SECP256K1())
-    private_numbers = ec.EllipticCurvePrivateNumbers(private_value, public_numbers)
+    private_numbers = ec.EllipticCurvePrivateNumbers(
+        private_value, public_numbers)
     return private_numbers.private_key(openssl.backend)
 
 
@@ -94,10 +97,12 @@ def decrypt(privkey, data):
     curve = s.uint(2)
     assert curve == 0x02ca
     x_len = s.uint(2)
-    assert x_len <= 32 # TODO Should we assert this? And should we assert no leading zero bytes?
+    #: TODO Should we assert this? And should we assert no leading zero bytes?
+    assert x_len <= 32
     x = s.bytes(x_len)
     y_len = s.uint(2)
-    assert y_len <= 32 # TODO Should we assert this? And should we assert no leading zero bytes?
+    #: TODO Should we assert this? And should we assert no leading zero bytes?
+    assert y_len <= 32
     y = s.bytes(y_len)
     encrypted = s.bytes(-32)
     assert encrypted != b''
@@ -125,7 +130,7 @@ def verify(pubkey, data, signature):
         verifier = public_key.verifier(signature, ec.ECDSA(hashes.SHA256()))
         verifier.update(data)
         verifier.verify()
-    except:
+    except Exception:  # TODO: exception type
         # Also support SHA1 signatures as they're still seen in the wild
         public_key = _pub_to_public(pubkey)
         verifier = public_key.verifier(signature, ec.ECDSA(hashes.SHA1()))
@@ -163,15 +168,15 @@ def urandom(size):
     return os.urandom(size)
 
 
-def randint(min, max):
-    assert min <= max
-    count = 1 + max - min
+def randint(minimum, maximum):
+    assert minimum <= maximum
+    count = 1 + maximum - minimum
     assert count <= 2**64
-    random = int.from_bytes(os.urandom(128//8), 'big')
-    return min + random%count
+    random = int.from_bytes(os.urandom(128 // 8), 'big')
+    return minimum + random % count
 
 
 def to_ripe(verkey, enckey):
     assert len(verkey) == 64
     assert len(enckey) == 64
-    return bm160(b'\x04'+verkey+b'\x04'+enckey)
+    return bm160(b'\x04' + verkey + b'\x04' + enckey)

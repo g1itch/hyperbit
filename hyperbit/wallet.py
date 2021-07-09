@@ -1,7 +1,8 @@
 # Copyright 2015-2016 HyperBit developers
 
-from hyperbit import base58, serialize, crypto, config
 import enum
+
+from hyperbit import base58, serialize, crypto, config
 
 
 class IdentityType(enum.IntEnum):
@@ -61,17 +62,23 @@ class Profile2(object):
 
     @property
     def name(self):
-        for name, in self._db.execute('select name from profiles where address = ?', (self._address.to_bytes(),)):
+        for name, in self._db.execute(
+                'SELECT name FROM profiles WHERE address = ?',
+                (self._address.to_bytes(),)):
             return name
 
     @property
     def verkey(self):
-        for verkey, in self._db.execute('select verkey from profiles where address = ?', (self._address.to_bytes(),)):
+        for verkey, in self._db.execute(
+                'SELECT verkey FROM profiles WHERE address = ?',
+                (self._address.to_bytes(),)):
             return verkey[-64:]
 
     @property
     def enckey(self):
-        for enckey, in self._db.execute('select enckey from profiles where address = ?', (self._address.to_bytes(),)):
+        for enckey, in self._db.execute(
+                'SELECT enckey FROM profiles WHERE address = ?',
+                (self._address.to_bytes(),)):
             return enckey[-64:]
 
     def encrypt(self, data):
@@ -96,21 +103,29 @@ class Identity2(object):
 
     @property
     def type(self):
-        for name, in self._db.execute('select name from identities where address = ?', (self._address.to_bytes(),)):
+        for name, in self._db.execute(
+                'SELECT name FROM identities WHERE address = ?',
+                (self._address.to_bytes(),)):
             return name
 
     @type.setter
     def type(self, value):
-        self._db.execute('update identities set name = ? where address = ?', (value, self._address.to_bytes(),))
+        self._db.execute(
+            'UPDATE identities SET name = ? WHERE address = ?',
+            (value, self._address.to_bytes(),))
 
     @property
     def sigkey(self):
-        for sigkey, in self._db.execute('select sigkey from identities where address = ?', (self._address.to_bytes(),)):
+        for sigkey, in self._db.execute(
+                'SELECT sigkey FROM identities WHERE address = ?',
+                (self._address.to_bytes(),)):
             return sigkey
 
     @property
     def deckey(self):
-        for deckey, in self._db.execute('select deckey from identities where address = ?', (self._address.to_bytes(),)):
+        for deckey, in self._db.execute(
+                'SELECT deckey FROM identities WHERE address = ?',
+                (self._address.to_bytes(),)):
             return deckey
 
     def sign(self, data):
@@ -121,7 +136,9 @@ class Identity2(object):
 
     def __eq__(self, other):
         if isinstance(other, Identity2):
-            return self._db == other._db and self._address.to_bytes() == other._address.to_bytes()
+            return (
+                self._db == other._db
+                and self._address.to_bytes() == other._address.to_bytes())
         else:
             return NotImplemented
 
@@ -129,18 +146,22 @@ class Identity2(object):
 class Wallet(object):
     def __init__(self, db):
         self._db = db
-        self._db.execute('create table if not exists identities (address unique, name, sigkey, deckey)')
-        self._db.execute('create table if not exists profiles (address unique, name, verkey, enckey)')
+        self._db.execute(
+            'CREATE TABLE IF NOT EXISTS identities'
+            ' (address unique, name, sigkey, deckey)')
+        self._db.execute(
+            'CREATE TABLE IF NOT EXISTS profiles'
+            ' (address unique, name, verkey, enckey)')
         self.on_add_identity = []
         self.on_remove_identity = []
         self.names = Names(self._db)
 
         for identity in self.identities:
             if isinstance(identity.type, str):
-                if self.names.get(identity.profile.address.ripe)[0:6] == '[chan]':
-                    identity.type = 1
-                else:
-                    identity.type = 0
+                identity.type = (
+                    1 if self.names.get(
+                        identity.profile.address.ripe)[0:6] == '[chan]'
+                    else 0)
 
     def new_deterministic(self, name, type, text):
         for i in range(0, 2**64, 2):
@@ -169,10 +190,13 @@ class Wallet(object):
         ripe = crypto.to_ripe(verkey, enckey)
         self.names.set(ripe, name)
         address = Address(4, config.NETWORK_STREAM, ripe)
-        self._db.execute('insert into identities (address, name, sigkey, deckey) values (?, ?, ?, ?)',
-                (address.to_bytes(), type, sigkey, deckey))
-        self._db.execute('insert into profiles (address, name, verkey, enckey) values (?, ?, ?, ?)',
-                (address.to_bytes(), type, b'\x04'+verkey, b'\x04'+enckey))
+        self._db.execute(
+            'INSERT INTO identities (address, name, sigkey, deckey)'
+            ' VALUES (?, ?, ?, ?)', (address.to_bytes(), type, sigkey, deckey))
+        self._db.execute(
+            'INSERT INTO profiles (address, name, verkey, enckey)'
+            ' VALUES (?, ?, ?, ?)',
+            (address.to_bytes(), type, b'\x04' + verkey, b'\x04' + enckey))
         identity = Identity2(self._db, address)
         for func in self.on_add_identity:
             func(identity)
@@ -184,39 +208,42 @@ class Wallet(object):
     @property
     def identities(self):
         identities = []
-        for address, in self._db.execute('select address from identities'):
+        for address, in self._db.execute('SELECT address FROM identities'):
             identities.append(Identity2(self._db, Address.from_bytes(address)))
         return identities
 
     @property
     def profiles(self):
         profiles = []
-        for address, in self._db.execute('select address from profiles'):
+        for address, in self._db.execute('SELECT address FROM profiles'):
             profiles.append(Profile2(self._db, Address.from_bytes(address)))
         return profiles
 
     def remove_identity(self, identity):
         for func in self.on_remove_identity:
             func(identity)
-        self._db.execute('delete from identities '
-                         'where address = ?',
-                         (identity.address.to_bytes(),))
-        self._db.execute('delete from profiles '
-                         'where address = ?',
-                         (identity.address.to_bytes(),))
+        self._db.execute(
+            'DELETE FROM identities WHERE address = ?',
+            (identity.address.to_bytes(),))
+        self._db.execute(
+            'DELETE FROM profiles WHERE address = ?',
+            (identity.address.to_bytes(),))
 
 
 class Names(object):
     def __init__(self, db):
         self._db = db
-        if not self._db.execute('select 1 from sqlite_master where name = "names"').fetchone():
-            self._db.execute('create table names (ripe unique, name)')
-            self._db.execute('insert into names (ripe, name) select substr(address, 3), name from identities')
+        if not self._db.execute(
+                'SELECT 1 FROM sqlite_master WHERE name = "names"').fetchone():
+            self._db.execute('CREATE TABLE names (ripe unique, name)')
+            self._db.execute(
+                'INSERT INTO names (ripe, name)'
+                ' SELECT substr(address, 3), name FROM identities')
         self._on_changed = dict()
         self._on_changed_all = list()
 
     def on_changed_add(self, ripe, callback):
-        if not ripe in self._on_changed:
+        if ripe not in self._on_changed:
             self._on_changed[ripe] = list()
         self._on_changed[ripe].append(callback)
 
@@ -232,10 +259,14 @@ class Names(object):
         self._on_changed_all.remove(callback)
 
     def set(self, ripe, name):
-        if not name or name == Address(4, config.NETWORK_STREAM, ripe).to_str():
-            self._db.execute('delete from names where ripe = ?', (ripe,))
+        if (
+            not name
+            or name == Address(4, config.NETWORK_STREAM, ripe).to_str()
+        ):
+            self._db.execute('DELETE FROM names WHERE ripe = ?', (ripe,))
         else:
-            self._db.execute('replace into names (ripe, name) values (?, ?)', (ripe, name))
+            self._db.execute(
+                'REPLACE INTO names (ripe, name) VALUES (?, ?)', (ripe, name))
         if ripe in self._on_changed:
             for func in self._on_changed[ripe]:
                 func()
@@ -243,7 +274,8 @@ class Names(object):
             func()
 
     def get(self, ripe):
-        row = self._db.execute('select name from names where ripe = ?', (ripe,)).fetchone()
+        row = self._db.execute(
+            'SELECT name FROM names WHERE ripe = ?', (ripe,)).fetchone()
         if row:
             return row[0]
         else:

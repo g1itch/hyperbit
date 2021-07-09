@@ -4,23 +4,24 @@ from hyperbit import crypto
 
 
 def encode_raw(data):
-    map = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+    alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     result = ''
     number = int.from_bytes(data, byteorder='big', signed=False)
     while number != 0:
-        result = map[number%len(map)] + result
-        number //= len(map)
-    result = (len(data)-len(data.lstrip(b'\x00')))*map[0] + result
+        result = alphabet[number % len(alphabet)] + result
+        number //= len(alphabet)
+    result = (len(data) - len(data.lstrip(b'\x00'))) * alphabet[0] + result
     return result
 
 
 def decode_raw(chars):
-    map = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+    alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     number = 0
     for char in chars:
-        number = len(map) * number + map.index(char)
-    data = number.to_bytes((number.bit_length()+7)//8, byteorder='big', signed=False)
-    data = (len(chars)-len(chars.lstrip(map[0])))*b'\x00' + data
+        number = len(alphabet) * number + alphabet.index(char)
+    data = number.to_bytes(
+        (number.bit_length() + 7) // 8, byteorder='big', signed=False)
+    data = (len(chars) - len(chars.lstrip(alphabet[0]))) * b'\x00' + data
     return data
 
 
@@ -28,7 +29,7 @@ def encode(data, prepend_bm=False):
     data += crypto.sha512d(data)[:4]
     text = encode_raw(data)
     if prepend_bm:
-        text = 'BM-'+text
+        text = 'BM-' + text
     return text
 
 
@@ -43,8 +44,8 @@ def decode(chars):
 
 
 def encode_wif(data):
-    data = b'\x80'+data
-    data = data+crypto.sha256d(data)[:4]
+    data = b'\x80' + data
+    data = data + crypto.sha256d(data)[:4]
     return encode_raw(data)
 
 

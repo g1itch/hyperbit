@@ -35,9 +35,9 @@ class Serializer:
         self.bytes(value)
 
     def vstr(self, value):
-        buffer = bytes(value, 'utf8')
-        self.vint(len(buffer))
-        self.bytes(buffer)
+        buf = bytes(value, 'utf8')
+        self.vint(len(buf))
+        self.bytes(buf)
 
 
 class Deserializer:
@@ -47,15 +47,15 @@ class Deserializer:
 
     def bytes(self, size=None):
         if size is None:
-            buffer = self._data[self._index:]
+            buf = self._data[self._index:]
             self._index = len(self._data)
         elif size >= 0:
-            buffer = self._data[self._index:self._index+size]
+            buf = self._data[self._index:self._index+size]
             self._index += size
         else:
-            buffer = self._data[self._index:size]
+            buf = self._data[self._index:size]
             self._index = len(self._data) + size
-        return buffer
+        return buf
 
     def uint(self, size):
         return int.from_bytes(self.bytes(size), byteorder='big', signed=False)
@@ -67,12 +67,12 @@ class Deserializer:
         return str(self.bytes(size), 'utf8')
 
     def vint(self):
-        buffer = self.uint(1)
-        if buffer <= 0xfc:
-            return buffer
-        elif buffer == 0xfd:
+        buf = self.uint(1)
+        if buf <= 0xfc:
+            return buf
+        elif buf == 0xfd:
             return self.uint(2)
-        elif buffer == 0xfe:
+        elif buf == 0xfe:
             return self.uint(4)
         else:
             return self.uint(8)

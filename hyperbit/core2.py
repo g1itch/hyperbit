@@ -1,23 +1,29 @@
 # Copyright 2015-2016 HyperBit developers
 
-import appdirs
 import asyncio
 import os
 import sqlite3
 import time
 
-from hyperbit import config, crypto, inventory, message, network, objscanner, objtypes, wallet, worker, packet
+import appdirs
+
+from hyperbit import (
+    config, crypto, inventory, message, network,
+    objscanner, objtypes, wallet, worker, packet
+)
 
 
 class Core(object):
     def __init__(self):
         user_config_dir = appdirs.user_config_dir('hyperbit', '')
         os.makedirs(user_config_dir, 0o700, exist_ok=True)
-        self._db = sqlite3.connect(os.path.join(user_config_dir, 'hyperbit.sqlite3'))
-        self._db.execute('pragma synchronous = off')
-        self._db.execute('pragma locking_mode = exclusive')
+        self._db = sqlite3.connect(
+            os.path.join(user_config_dir, 'hyperbit.sqlite3'))
+        self._db.execute('PRAGMA synchronous = off')
+        self._db.execute('PRAGMA locking_mode = exclusive')
 
-        self._db.execute('create table if not exists config (id unique, value)')
+        self._db.execute(
+            'CREATE TABLE IF NOT EXISTS config (id unique, value)')
         self.inv = inventory.Inventory(self._db)
         self.peers = network.PeerManager(self, self._db, self.inv)
         self.inv.on_add_object.append(self.peers.send_inv)
@@ -37,36 +43,46 @@ class Core(object):
             yield from asyncio.sleep(1)
 
     def get_config(self, key, default=None):
-        return self._db.execute('select coalesce(min(value), ?) from config where id = ?', (default, key)).fetchone()[0]
+        return self._db.execute(
+            'SELECT coalesce(min(value), ?) FROM config WHERE id = ?',
+            (default, key)
+        ).fetchone()[0]
 
     def set_config(self, key, value):
-        self._db.execute('insert or replace into config (id, value) values (?, ?)', (key, value))
+        self._db.execute(
+            'INSERT OR REPLACE INTO config (id, value) VALUES (?, ?)',
+            (key, value)
+        )
 
     @asyncio.coroutine
     def run(self):
         asyncio.get_event_loop().create_task(self._save())
         yield from self.peers.run()
 
-    def scan_object(self, object):
-        self.scanner.scan(object.hash, None)
+    def scan_object(self, obj):
+        self.scanner.scan(obj.hash, None)
         for identity in self.wal.identities:
-            self.scanner.scan(object.hash, identity)
+            self.scanner.scan(obj.hash, identity)
 
     def scan_identity(self, identity):
         for hash in self.inv.get_hashes():
             self.scanner.scan(hash, identity)
 
-    def do_scan_msg_1(self, object, identity):
+    def do_scan_msg_1(self, obj, identity):
         try:
-            decrypted = identity.decrypt(object.payload)
+            decrypted = identity.decrypt(obj.payload)
             msg = objtypes.MsgData.from_bytes(decrypted)
-        except:
+        except Exception:  # TODO: exception type
             pass
         else:
-            if msg.encoding in [objtypes.Encoding.trivial, objtypes.Encoding.simple]:
+            if msg.encoding in [
+                    objtypes.Encoding.trivial, objtypes.Encoding.simple]:
                 simple = objtypes.SimpleMessage.from_bytes(msg.message)
-                channel = wallet.Address(4, config.NETWORK_STREAM, msg.ripe).to_bytes()
-                creator = wallet.Address(4, config.NETWORK_STREAM, crypto.to_ripe(msg.verkey, msg.enckey)).to_bytes()
+                channel = wallet.Address(
+                    4, config.NETWORK_STREAM, msg.ripe).to_bytes()
+                creator = wallet.Address(
+                    4, config.NETWORK_STREAM,
+                    crypto.to_ripe(msg.verkey, msg.enckey)).to_bytes()
                 reply = simple.subject[0:4] == 'Re: '
                 if reply:
                     simple.subject = simple.subject[4:]
@@ -79,9 +95,11 @@ class Core(object):
                         break
                 else:
                     if not reply:
-                        thread = self.list.new_thread(channel, creator, simple.subject)
+                        thread = self.list.new_thread(
+                            channel, creator, simple.subject)
                     else:
-                        thread = self.list.new_thread(channel, b'', simple.subject)
+                        thread = self.list.new_thread(
+                            channel, b'', simple.subject)
                 if len(thread.longest) < len(simple.body):
                     thread.longest = simple.body
                 if not reply:
@@ -102,22 +120,26 @@ class Core(object):
                                 comment.parent_text = parent_text
                                 break
                         else:
-                            comment = thread.new_comment(parent_text, b'', body)
+                            comment = thread.new_comment(
+                                parent_text, b'', body)
                         parent_text = body
                     comment.creator = creator
 
-    def do_scan(self, object, identity):
+    def do_scan(self, obj, identity):
         if identity is None:
             return
-        if object is None:
+        if obj is None:
             return
-        if object.type == objtypes.Type.msg and object.version == 1:
-            self.do_scan_msg_1(object, identity)
+        if obj.type == objtypes.Type.msg and obj.version == 1:
+            self.do_scan_msg_1(obj, identity)
 
     def send_message(self, src, dst, message):
-        object = packet.Object(
+        obj = packet.Object(
             nonce=0,
-            expires=int(time.time() + 4*24*60*60 + crypto.randint(-60*60, 60*60)),
+            expires=int(
+                time.time() + 4 * 24 * 60 * 60
+                + crypto.randint(-60 * 60, 60 * 60)
+            ),
             type=objtypes.Type.msg,
             version=1,
             stream=config.NETWORK_STREAM,
@@ -131,8 +153,8 @@ class Core(object):
             encoding=message.encoding, message=message.to_bytes(),
             ack=b'', signature=b''
         )
-        msg.sign(src.sigkey, object)
-        object.payload = crypto.encrypt(dst.enckey, msg.to_bytes())
+        msg.sign(src.sigkey, obj)
+        obj.payload = crypto.encrypt(dst.enckey, msg.to_bytes())
 
-        self.worker.add_object(object, config.NETWORK_TRIALS, config.NETWORK_EXTRA, int(time.time()))
-
+        self.worker.add_object(
+            obj, config.NETWORK_TRIALS, config.NETWORK_EXTRA, int(time.time()))

@@ -47,7 +47,7 @@ class Pubkey2(object):
         return cls(int.from_bytes(data[:4], 'big'), data[4:68], data[68:132])
 
     def to_bytes(self):
-        return self.behavior.to_bytes(4, 'big')  + self.verkey + self.enckey
+        return self.behavior.to_bytes(4, 'big') + self.verkey + self.enckey
 
 
 class Pubkey3(object):
@@ -134,7 +134,10 @@ class Broadcast5(object):
 
 
 class MsgData(object):
-    def __init__(self, addrver, stream, behavior, verkey, enckey, trials, extra, ripe, encoding, message, ack, signature):
+    def __init__(
+        self, addrver, stream, behavior, verkey, enckey, trials, extra,
+        ripe, encoding, message, ack, signature
+    ):
         self.addrver = addrver
         self.stream = stream
         self.behavior = behavior
@@ -163,7 +166,9 @@ class MsgData(object):
         message = s.vbytes()
         ack = s.vbytes()
         signature = s.vbytes()
-        return cls(addrver, stream, behavior, verkey, enckey, trials, extra, ripe, encoding, message, ack ,signature)
+        return cls(
+            addrver, stream, behavior, verkey, enckey, trials, extra, ripe,
+            encoding, message, ack, signature)
 
     def to_bytes(self):
         s = serialize.Serializer()
@@ -181,12 +186,12 @@ class MsgData(object):
         s.vbytes(self.signature)
         return s.data
 
-    def sign(self, sigkey, object):
+    def sign(self, sigkey, obj):
         s = serialize.Serializer()
-        s.uint(object.expires, 8)
-        s.uint(object.type, 4)
-        s.vint(object.version)
-        s.vint(object.stream)
+        s.uint(obj.expires, 8)
+        s.uint(obj.type, 4)
+        s.vint(obj.version)
+        s.vint(obj.stream)
         s.vint(self.addrver)
         s.vint(self.stream)
         s.uint(self.behavior, 4)
@@ -200,12 +205,12 @@ class MsgData(object):
         s.vbytes(self.ack)
         self.signature = crypto.sign(sigkey, s.data)
 
-    def verify(self, object):
+    def verify(self, obj):
         s = serialize.Serializer()
-        s.uint(object.expires, 8)
-        s.uint(object.type, 4)
-        s.vint(object.version)
-        s.vint(object.stream)
+        s.uint(obj.expires, 8)
+        s.uint(obj.type, 4)
+        s.vint(obj.version)
+        s.vint(obj.stream)
         s.vint(self.addrver)
         s.vint(self.stream)
         s.uint(self.behavior, 4)
@@ -219,8 +224,12 @@ class MsgData(object):
         s.vbytes(self.ack)
         crypto.verify(self.verkey, s.data, self.signature)
 
+
 class BroadcastData(object):
-    def __init__(self, addrver, stream, behavior, verkey, enckey, trials, extra, encoding, message, signature):
+    def __init__(
+        self, addrver, stream, behavior, verkey, enckey, trials, extra,
+        encoding, message, signature
+    ):
         self.addrver = addrver
         self.stream = stream
         self.behavior = behavior
@@ -245,7 +254,9 @@ class BroadcastData(object):
         encoding = s.vint()
         message = s.vbytes()
         signature = s.vbytes()
-        return cls(addrver, stream, behavior, verkey, enckey, trials, extra, encoding, message, signature)
+        return cls(
+            addrver, stream, behavior, verkey, enckey, trials, extra, encoding,
+            message, signature)
 
 
 class Encoding(enum.IntEnum):
@@ -256,6 +267,7 @@ class Encoding(enum.IntEnum):
 
 class SimpleMessage(object):
     encoding = Encoding.simple
+
     def __init__(self, subject, body):
         self.subject = subject
         self.body = body
@@ -265,7 +277,7 @@ class SimpleMessage(object):
         text = data.decode(errors='replace')
         try:
             subject = text[8:text.index('\n')]
-        except:
+        except Exception:  # TODO: exception type
             subject = ''
         try:
             body = text[text.index('\nBody:')+6:]
@@ -274,5 +286,4 @@ class SimpleMessage(object):
         return cls(subject, body)
 
     def to_bytes(self):
-        return ('Subject:'+self.subject+'\nBody:'+self.body).encode()
-
+        return ('Subject:' + self.subject + '\nBody:' + self.body).encode()

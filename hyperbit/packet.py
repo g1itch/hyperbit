@@ -1,7 +1,8 @@
 # Copyright 2015-2016 HyperBit developers
+
 import collections
-import random
 import time
+
 from hyperbit import config, pow, serialize, crypto
 
 
@@ -37,7 +38,10 @@ class Generic(object):
 
 
 class Version(object):
-    def __init__(self, version, services, timestamp, dst_services, dst_ip, dst_port, src_services, src_ip, src_port, nonce, user_agent, streams):
+    def __init__(
+        self, version, services, timestamp, dst_services, dst_ip, dst_port,
+        src_services, src_ip, src_port, nonce, user_agent, streams
+    ):
         self.command = 'version'
         self.version = version
         self.services = services
@@ -102,7 +106,9 @@ class Verack(object):
     def data(self):
         return b''
 
-Address = collections.namedtuple('Address', ['time', 'stream', 'services', 'ip', 'port'])
+
+Address = collections.namedtuple(
+    'Address', ['time', 'stream', 'services', 'ip', 'port'])
 Endpoint = collections.namedtuple('Endpoint', ['ip', 'port'])
 
 
@@ -122,9 +128,7 @@ class Addr(object):
             ip = s.bytes(16)
             port = s.uint(2)
             addresses.append(Address(time, stream, services, ip, port))
-        return cls(
-            addresses
-        )
+        return cls(addresses)
 
     @property
     def data(self):
@@ -155,8 +159,8 @@ class Inv(object):
     def data(self):
         s = serialize.Serializer()
         s.vint(len(self.hashes))
-        for hash in self.hashes:
-            s.bytes(hash)
+        for h in self.hashes:
+            s.bytes(h)
         return s.data
 
 
@@ -176,8 +180,8 @@ class Getdata(object):
     def data(self):
         s = serialize.Serializer()
         s.vint(len(self.hashes))
-        for hash in self.hashes:
-            s.bytes(hash)
+        for h in self.hashes:
+            s.bytes(h)
         return s.data
 
 
@@ -211,14 +215,20 @@ class Object(object):
     def brink(self):
         a = self.nonce.to_bytes(8, 'big')
         initial = crypto.sha512(self.data[8:])
-        c = crypto.sha512d(a+initial)
+        c = crypto.sha512d(a + initial)
         value = int.from_bytes(c[:8], 'big')
-        return int(self.expires-2**80/(value*config.NETWORK_TRIALS*(len(self.data)+config.NETWORK_EXTRA))+2**16)
+        return int(
+            self.expires - 2**80 / (
+                value * config.NETWORK_TRIALS * (
+                    len(self.data) + config.NETWORK_EXTRA)
+                ) + 2**16)
 
     @property
     def valid(self):
         ttl = int(self.expires - time.time())
-        completed = pow.check(self.data[8:], config.NETWORK_TRIALS, config.NETWORK_EXTRA, ttl, self.nonce)
+        completed = pow.check(
+            self.data[8:], config.NETWORK_TRIALS, config.NETWORK_EXTRA,
+            ttl, self.nonce)
         unexpired = ttl > 0
         return completed and unexpired
 

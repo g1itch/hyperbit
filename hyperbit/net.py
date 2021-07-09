@@ -8,7 +8,7 @@ import socket
 def ipv6(address):
     host = ipaddress.ip_address(address)
     if host.version == 4:
-        host = ipaddress.IPv6Address(10*b'\x00'+2*b'\xff'+host.packed)
+        host = ipaddress.IPv6Address(10 * b'\x00' + 2 * b'\xff' + host.packed)
     return host
 
 
@@ -22,9 +22,11 @@ class Connection(object):
     def connect(self):
         self._s = socket.socket()
         if self.remote_host.ipv4_mapped:
-            host = ipaddress.IPv4Address(self.remote_host.packed[-4:]).compressed
+            host = ipaddress.IPv4Address(
+                self.remote_host.packed[-4:]).compressed
         else:
             host = self.remote_host.compressed
+
         def func():
             try:
                 self._s.connect((host, self.remote_port))
@@ -32,9 +34,9 @@ class Connection(object):
                 return False
             else:
                 return True
+
         loop = asyncio.get_event_loop()
         return (yield from loop.run_in_executor(None, func))
-
 
     def send(self, data):
         try:

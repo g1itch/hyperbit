@@ -1,12 +1,11 @@
 # Copyright 2015-2016 HyperBit developers
 
 import asyncio
-import qasync
+import _cffi_backend  # noqa:F401 for PyInstaller
 import sys
-from PyQt5.QtWidgets import QApplication, QDialog
-import _cffi_backend  # for Pyinstaller
-import socks
-import socket
+
+import qasync
+from PyQt5.QtWidgets import QApplication
 
 from hyperbit import core2
 from hyperbit.gui import gui
