@@ -131,7 +131,7 @@ class Thread2(object):
 
 class ThreadList(object):
     def __init__(self, db):
-        logger.info('start')
+        logger.debug('start')
         self._db = db
         self._db.execute(
             'CREATE TABLE IF NOT EXISTS threads'

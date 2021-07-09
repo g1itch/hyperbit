@@ -13,7 +13,7 @@ class Worker(object):
     """A worker that can compute object POWs"""
     def __init__(self, db):
         """Worker that can compute object PoWs."""
-        logger.info('start')
+        logger.debug('start')
         self._db = db
         self._db.execute(
             'CREATE TABLE IF NOT EXISTS worker (obj, trials, extra, timestamp)'

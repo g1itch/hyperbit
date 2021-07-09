@@ -72,7 +72,7 @@ class KnownPeer(object):
 
 class PeerManager(object):
     def __init__(self, core, db, inv):
-        logger.info('start')
+        logger.debug('start')
         self._core = core
         self._db = db
         self._db.execute(
@@ -266,7 +266,7 @@ class PacketConnection(object):
 
     def send_packet(self, payload):
         """Send a Bitmessage packet."""
-        logger.info('sending %s packet', payload.command)
+        logger.debug('sending %s packet', payload.command)
         magic = 0xe9beb4d9
         command = payload.command
         payloaddata = payload.data
@@ -290,7 +290,7 @@ class PacketConnection(object):
             return None
         if header.checksum != crypto.sha512(payloaddata)[:4]:
             return None
-        logger.info('received %s packet', header.command)
+        logger.debug('received %s packet', header.command)
         return packet.Generic(header.command, payloaddata)
 
 

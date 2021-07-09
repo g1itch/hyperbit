@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class Core(object):
     def __init__(self):
-        logger.info('start')
+        logger.debug('start')
         user_config_dir = appdirs.user_config_dir('hyperbit', '')
         os.makedirs(user_config_dir, 0o700, exist_ok=True)
         self._db = sqlite3.connect(

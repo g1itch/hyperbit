@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class Scanner(object):
     def __init__(self, db, inv, wal):
-        logger.info('start')
+        logger.debug('start')
         self._db = db
         self._db.execute(
             'CREATE TABLE IF NOT EXISTS scans'
