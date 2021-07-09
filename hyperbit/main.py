@@ -1,7 +1,7 @@
 # Copyright 2015-2016 HyperBit developers
 
 import asyncio
-import quamash
+import qasync
 import sys
 from PyQt5.QtWidgets import QApplication, QDialog
 import _cffi_backend  # for Pyinstaller
@@ -14,7 +14,7 @@ from hyperbit.gui import gui
 
 def main():
     app = QApplication(sys.argv)
-    asyncio.set_event_loop(quamash.QEventLoop(app))
+    asyncio.set_event_loop(qasync.QEventLoop(app))
 
     @asyncio.coroutine
     def run():
@@ -28,4 +28,3 @@ def main():
 
     asyncio.get_event_loop().create_task(run())
     asyncio.get_event_loop().run_forever()
-
