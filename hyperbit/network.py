@@ -247,8 +247,8 @@ class PeerManager(object):
 
 
 class PacketConnection(object):
+    """A connection for sending and receiving Bitmessage packets"""
     def __init__(self, connection):
-        """Connection for sending and receiving Bitmessage packets"""
         self._c = connection
         self.remote_host = connection.remote_host
 

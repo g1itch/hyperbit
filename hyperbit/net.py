@@ -13,7 +13,7 @@ def ipv6(address):
 
 
 class Connection(object):
-    """An asyncronous tcp socket connection."""
+    """An asyncronous tcp socket connection"""
     def __init__(self, host, port, socket=None):
         self.remote_host = host
         self.remote_port = port
@@ -64,18 +64,22 @@ class Connection(object):
         return (yield from loop.run_in_executor(None, func))
 
     def shutdown(self):
-        """Close the connection and terminate a pending connect or recv call."""
+        """
+        Close the connection and terminate a pending connect or recv call.
+        """
         self._s.shutdown(socket.SHUT_RDWR)
 
 
 class Listener(object):
-    """An asynchronous socket listener."""
+    """An asynchronous socket listener"""
     def __init__(self, port):
         self._s = socket.socket()
         self._port = port
 
     def listen(self):
-        """Bind the listener to a port. Return True on success, else return False."""
+        """
+        Bind the listener to a port. Return True on success, else return False.
+        """
         try:
             self._s.bind(('0.0.0.0', self._port))
             self._s.listen(10)
