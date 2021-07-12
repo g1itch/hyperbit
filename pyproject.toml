@@ -1,3 +1,30 @@
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.coverage.run]
+source = ["hyperbit"]
+
+[tool.coverage.report]
+ignore_errors = true
+
+[tool.tox]
+legacy_tox_ini = """
+[testenv]
+deps =
+    coverage[toml]
+    -rrequirements.txt
+commands = coverage run -a -m unittest discover -v -s ./tests
+
+[testenv:reset]
+commands = coverage erase
+
+[testenv:stats]
+commands =
+    coverage report
+    coverage xml
+
+[tox]
+envlist = reset,py{37,38,39},stats
+skip_missing_interpreters = true
+"""
