@@ -66,7 +66,7 @@ class Core(object):
 
     def scan_object(self, obj):
         logger.info(
-            'scan object with hash %s', binascii.hexlify(object.hash).decode())
+            'scan object with hash %s', binascii.hexlify(obj.hash).decode())
         self.scanner.scan(obj.hash, None)
         for identity in self.wal.identities:
             self.scanner.scan(obj.hash, identity)
