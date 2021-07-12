@@ -1,13 +1,14 @@
 # Copyright 2015-2021 HyperBit developers
 
 import os
+import sys
 
 from setuptools import setup
 
-from hyperbit import __version__
-
-
 topdir = os.path.abspath(os.path.dirname(__file__))
+sys.path.insert(0, topdir)
+
+from hyperbit import __version__  # noqa:E402
 
 requirements = list(open(
     os.path.join(topdir, 'requirements.txt'), encoding='utf8').readlines())
