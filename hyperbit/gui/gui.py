@@ -213,6 +213,11 @@ class ObjectsTab(QWidget):
         proxyModel = QSortFilterProxyModel()
         proxyModel.setSourceModel(model)
         self.tableView.setModel(proxyModel)
+        # resizing
+        header = self.tableView.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(0, QHeaderView.Stretch)
+        header.setSortIndicator(2, Qt.DescendingOrder)
 
 
 class StatusTab(QWidget):
