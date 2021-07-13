@@ -285,7 +285,7 @@ class MainWindow(QMainWindow):
         self.tab.addTab(MessagesTab(self._core, self), 'Messages')
         self.tab.addTab(ObjectsTab(self._core, self), 'Objects')
         self.tab.addTab(self._status_tab, 'Status')
-        self.tab.setCurrentIndex(0)
+        self.tab.setCurrentIndex(1)
 
         self._progressBar = QProgressBar()
         self._progressBar.setMinimum(0)
