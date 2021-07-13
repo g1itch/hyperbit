@@ -6,7 +6,6 @@ import binascii
 from datetime import datetime
 from hyperbit.gui import identicon
 from hyperbit import wallet
-import asyncio
 
 
 class ConnectionModel(QAbstractTableModel):
@@ -14,23 +13,18 @@ class ConnectionModel(QAbstractTableModel):
         super().__init__()
         self._peers = peers
         self._connections = []
-        # asyncio.get_event_loop().create_task(self._update())
+        peers.on_stats_changed.append(self._update)
 
-    @asyncio.coroutine
     def _update(self):
-        while True:
-            # self.beginRemoveRows(QModelIndex(), 0, len(self._connections)-1)
-            # self.endRemoveRows()
-            self.beginResetModel()
-            self._connections.clear()
-            for connection in self._peers._connections:
+        self.beginResetModel()
+        self._connections.clear()
+        for connection in self._peers._connections:
+            if connection.fully_established:
                 self._connections.append(connection)
-            self.endResetModel()
-            print('now', self.rowCount())
-            yield from asyncio.sleep(1)
+        self.endResetModel()
 
     def columnCount(self, QModelIndex_parent=None, *args, **kwargs):
-        return 3
+        return 2
 
     def rowCount(self, QModelIndex_parent=None, *args, **kwargs):
         return len(self._connections)
@@ -38,24 +32,18 @@ class ConnectionModel(QAbstractTableModel):
     def headerData(self, index, orientation, role=None):
         if role == Qt.DisplayRole:
             if orientation == Qt.Horizontal:
-                return ['Address', 'Port', 'User Agent'][index]
-            else:
-                return None
-        else:
-            return None
+                return ['Peer', 'User Agent'][index]
 
     def data(self, index, role=None):
+        connection = self._connections[index.row()]
         if role == Qt.DisplayRole:
-            connection = self._connections[index.row()]
             column = index.column()
             if column == 0:
-                return connection.remote_host
-            elif column == 1:
-                return connection.remote_port
-            elif column == 2:
+                return '[{0.remote_host}]:{0.remote_port}'.format(connection)
+            if column == 1:
                 return connection.remote_user_agent
-        else:
-            return None
+        if role == Qt.BackgroundRole:
+            return QColor("green" if connection.inbound else "yellow")
 
 
 class IdentityModel(QAbstractTableModel):

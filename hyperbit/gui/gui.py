@@ -230,6 +230,15 @@ class StatusTab(QWidget):
         self._core.inv.on_stats_changed.append(self.on_stats_changed)
         self.on_stats_changed()
 
+        model = models.ConnectionModel(self._core.peers)
+        proxyModel = QSortFilterProxyModel()
+        proxyModel.setSourceModel(model)
+        self.tableView.setModel(proxyModel)
+        # resizing
+        header = self.tableView.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(0, QHeaderView.Stretch)
+
         self.configureNetwork.clicked.connect(self._configure_network2)
 
         self.about.clicked.connect(lambda: QMessageBox.about(self, 'HyperBit',
