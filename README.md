@@ -1,5 +1,7 @@
 # HyperBit
 
+[![Quick Test](https://github.com/g1itch/hyperbit/actions/workflows/test.yml/badge.svg)](https://github.com/g1itch/hyperbit/actions/workflows/test.yml)
+
 HyperBit is an alternate client for the Bitmessage network. This is a very early
 release and should mainly be used for testing.
 
