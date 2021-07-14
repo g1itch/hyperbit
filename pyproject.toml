@@ -8,16 +8,27 @@ source = ["hyperbit"]
 [tool.coverage.report]
 ignore_errors = true
 
+[tool.pylint."messages control"]
+ignore = "gui"
+disable = "fixme,invalid-name,too-few-public-methods,unused-import"
+extension-pkg-allow-list = "PyQt5"
+
 [tool.tox]
 legacy_tox_ini = """
 [testenv]
 deps =
     coverage[toml]
+    flake8
+    pylint
     -rrequirements.txt
 commands = coverage run -a -m unittest discover -v -s ./tests
 
 [testenv:reset]
-commands = coverage erase
+commands =
+    coverage erase
+    flake8 hyperbit --count --select=E9,F63,F7,F82 --show-source --statistics
+    flake8 hyperbit --count --exit-zero --statistics
+    pylint hyperbit --exit-zero
 
 [testenv:stats]
 commands =
