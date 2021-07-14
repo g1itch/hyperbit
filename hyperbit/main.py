@@ -1,12 +1,13 @@
 # Copyright 2015-2021 HyperBit developers
 
 import asyncio
+import logging
 import sys
 
 import _cffi_backend  # noqa:F401 for PyInstaller
 try:
     import qasync
-    from PyQt5.QtWidgets import QApplication
+    from PyQt5 import QtWidgets
 except ImportError:
     gui = None
 else:
@@ -17,8 +18,12 @@ from hyperbit import core2
 
 def main():
     if gui:
-        app = QApplication(sys.argv)
+        app = QtWidgets.QApplication(sys.argv)
         asyncio.set_event_loop(qasync.QEventLoop(app))
+
+    logging.basicConfig(
+        level=logging.WARNING if gui else logging.INFO,
+        format='[%(asctime)s] [%(levelname)s] %(message)s')
 
     @asyncio.coroutine
     def run():
