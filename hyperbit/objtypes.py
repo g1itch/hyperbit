@@ -12,7 +12,7 @@ class Type(enum.IntEnum):
     broadcast = 3
 
 
-class Getpubkey23(object):
+class Getpubkey23():
     def __init__(self, ripe):
         self.ripe = ripe
 
@@ -24,7 +24,7 @@ class Getpubkey23(object):
         return self.ripe
 
 
-class Getpubkey4(object):
+class Getpubkey4():
     def __init__(self, tag):
         self.tag = tag
 
@@ -36,7 +36,7 @@ class Getpubkey4(object):
         return self.tag
 
 
-class Pubkey2(object):
+class Pubkey2():
     def __init__(self, behavior, verkey, enckey):
         self.behavior = behavior
         self.verkey = verkey
@@ -50,7 +50,7 @@ class Pubkey2(object):
         return self.behavior.to_bytes(4, 'big') + self.verkey + self.enckey
 
 
-class Pubkey3(object):
+class Pubkey3():
     def __init__(self, behavior, verkey, enckey, trials, extra, signature):
         self.behavior = behavior
         self.verkey = verkey
@@ -81,7 +81,7 @@ class Pubkey3(object):
         return s.data
 
 
-class Pubkey4(object):
+class Pubkey4():
     def __init__(self, tag, encrypted):
         assert len(tag) == 32
         self.tag = tag
@@ -95,7 +95,7 @@ class Pubkey4(object):
         return self.tag + self.encrypted
 
 
-class Msg1(object):
+class Msg1():
     def __init__(self, encrypted):
         self.encrypted = encrypted
 
@@ -107,7 +107,7 @@ class Msg1(object):
         return self.encrypted
 
 
-class Broadcast4(object):
+class Broadcast4():
     def __init__(self, encrypted):
         self.encrypted = encrypted
 
@@ -119,7 +119,7 @@ class Broadcast4(object):
         return self.encrypted
 
 
-class Broadcast5(object):
+class Broadcast5():
     def __init__(self, tag, encrypted):
         assert len(tag) == 32
         self.tag = tag
@@ -133,7 +133,7 @@ class Broadcast5(object):
         return self.tag + self.encrypted
 
 
-class MsgData(object):
+class MsgData():
     def __init__(
         self, addrver, stream, behavior, verkey, enckey, trials, extra,
         ripe, encoding, message, ack, signature
@@ -225,7 +225,7 @@ class MsgData(object):
         crypto.verify(self.verkey, s.data, self.signature)
 
 
-class BroadcastData(object):
+class BroadcastData():
     def __init__(
         self, addrver, stream, behavior, verkey, enckey, trials, extra,
         encoding, message, signature
@@ -265,7 +265,7 @@ class Encoding(enum.IntEnum):
     simple = 2
 
 
-class SimpleMessage(object):
+class SimpleMessage():
     encoding = Encoding.simple
 
     def __init__(self, subject, body):

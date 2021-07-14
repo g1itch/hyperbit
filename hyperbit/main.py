@@ -1,18 +1,18 @@
 # Copyright 2015-2016 HyperBit developers
 
 import asyncio
-import _cffi_backend  # noqa:F401 for PyInstaller
 import sys
 
+import _cffi_backend  # noqa:F401 for PyInstaller
 import qasync
-from PyQt5.QtWidgets import QApplication
+from PyQt5 import QtWidgets
 
 from hyperbit import core2
 from hyperbit.gui import gui
 
 
 def main():
-    app = QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     asyncio.set_event_loop(qasync.QEventLoop(app))
 
     @asyncio.coroutine

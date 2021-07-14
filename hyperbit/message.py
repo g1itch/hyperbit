@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class Comment2(object):
+class Comment2():
     def __init__(self, db, rowid):
         self._db = db
         self._rowid = rowid
@@ -49,7 +49,7 @@ class Comment2(object):
         ).fetchone()[0]
 
 
-class Thread2(object):
+class Thread2():
     def __init__(self, db, rowid):
         self._db = db
         self._rowid = rowid
@@ -125,11 +125,11 @@ class Thread2(object):
     def __eq__(self, other):
         if isinstance(other, Thread2):
             return self._db == other._db and self._rowid == other._rowid
-        else:
-            return NotImplemented
+
+        return NotImplemented
 
 
-class ThreadList(object):
+class ThreadList():
     def __init__(self, db):
         logger.debug('start')
         self._db = db

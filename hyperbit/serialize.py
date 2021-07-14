@@ -70,12 +70,12 @@ class Deserializer:
         buf = self.uint(1)
         if buf <= 0xfc:
             return buf
-        elif buf == 0xfd:
+        if buf == 0xfd:
             return self.uint(2)
-        elif buf == 0xfe:
+        if buf == 0xfe:
             return self.uint(4)
-        else:
-            return self.uint(8)
+
+        return self.uint(8)
 
     def vbytes(self):
         size = self.vint()

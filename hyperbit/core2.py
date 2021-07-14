@@ -17,7 +17,7 @@ from hyperbit import (
 logger = logging.getLogger(__name__)
 
 
-class Core(object):
+class Core():
     def __init__(self):
         logger.debug('start')
         user_config_dir = appdirs.user_config_dir('hyperbit', '')
@@ -73,8 +73,8 @@ class Core(object):
 
     def scan_identity(self, identity):
         logger.info('scan identity with address %s', identity.address.to_str())
-        for hash in self.inv.get_hashes():
-            self.scanner.scan(hash, identity)
+        for invhash in self.inv.get_hashes():
+            self.scanner.scan(invhash, identity)
 
     def do_scan_msg_1(self, obj, identity):
         try:
@@ -121,7 +121,7 @@ class Core(object):
                 else:
                     bodies = reversed(simple.body.split('\n'+54*'-'+'\n'))
                     parent_text = ''
-                    for i, body in enumerate(bodies):
+                    for body in bodies:
                         for c in thread.comments:
                             if c.text == body:
                                 comment = c
@@ -141,7 +141,7 @@ class Core(object):
         if obj.type == objtypes.Type.msg and obj.version == 1:
             self.do_scan_msg_1(obj, identity)
 
-    def send_message(self, src, dst, message):
+    def send_message(self, src, dst, msg):
         obj = packet.Object(
             nonce=0,
             expires=int(
@@ -158,7 +158,7 @@ class Core(object):
             verkey=src.profile.verkey, enckey=src.profile.enckey,
             trials=config.NETWORK_TRIALS, extra=config.NETWORK_EXTRA,
             ripe=dst.address.ripe,
-            encoding=message.encoding, message=message.to_bytes(),
+            encoding=msg.encoding, message=msg.to_bytes(),
             ack=b'', signature=b''
         )
         msg.sign(src.sigkey, obj)

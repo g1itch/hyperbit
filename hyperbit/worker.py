@@ -9,7 +9,7 @@ from hyperbit import packet, pow
 logger = logging.getLogger(__name__)
 
 
-class Worker(object):
+class Worker():
     """A worker that can compute object POWs"""
     def __init__(self, db):
         """Worker that can compute object PoWs."""

@@ -14,7 +14,7 @@ from hyperbit import config, crypto, net, packet, __version__
 logger = logging.getLogger(__name__)
 
 
-class KnownPeer(object):
+class KnownPeer():
     def __init__(self, db, host):
         self._db = db
         self._host = host
@@ -70,7 +70,7 @@ class KnownPeer(object):
             func()
 
 
-class PeerManager(object):
+class PeerManager():
     def __init__(self, core, db, inv):
         logger.debug('start')
         self._core = core
@@ -253,7 +253,7 @@ class PeerManager(object):
         return addresses
 
 
-class PacketConnection(object):
+class PacketConnection():
     """A connection for sending and receiving Bitmessage packets"""
     def __init__(self, connection):
         self._c = connection
@@ -294,7 +294,7 @@ class PacketConnection(object):
         return packet.Generic(header.command, payloaddata)
 
 
-class Connection2(object):
+class Connection2():
     def __init__(self, om, peers, connection):
         self.om = om
         self.peers = peers

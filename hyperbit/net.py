@@ -12,7 +12,7 @@ def ipv6(address):
     return host
 
 
-class Connection(object):
+class Connection():
     """An asyncronous tcp socket connection"""
     def __init__(self, host, port, socket=None):
         self.remote_host = host
@@ -70,7 +70,7 @@ class Connection(object):
         self._s.shutdown(socket.SHUT_RDWR)
 
 
-class Listener(object):
+class Listener():
     """An asynchronous socket listener"""
     def __init__(self, port):
         self._s = socket.socket()
@@ -99,10 +99,8 @@ class Listener(object):
         loop = asyncio.get_event_loop()
         result = yield from loop.run_in_executor(None, func)
         if result:
-            socket, (host, port) = result
-            return Connection(ipv6(host), port, socket)
-        else:
-            return None
+            s, (host, port) = result
+            return Connection(ipv6(host), port, s)
 
     def shutdown(self):
         """Close the socket and terminate a pending accept call."""
