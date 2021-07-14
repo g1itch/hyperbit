@@ -8,7 +8,7 @@ import time
 logger = logging.getLogger(__name__)
 
 
-class Scanner(object):
+class Scanner():
     def __init__(self, db, inv, wal):
         logger.debug('start')
         self._db = db
@@ -25,13 +25,14 @@ class Scanner(object):
         if self._count > 0:
             asyncio.get_event_loop().create_task(self._run())
 
-    def scan(self, hash, identity):
+    def scan(self, invhash, identity):
         address = (
             b'' if identity is None else identity.profile.address.to_bytes())
         if self._count == 0:
             asyncio.get_event_loop().create_task(self._run())
         self._count += self._db.execute(
-            'INSERT INTO scans (hash, address) VALUES (?, ?)', (hash, address)
+            'INSERT INTO scans (hash, address) VALUES (?, ?)',
+            (invhash, address)
         ).rowcount
 
     @asyncio.coroutine
@@ -42,10 +43,10 @@ class Scanner(object):
         while self._index < self._count:
             # for count, in self._db.execute('select count(*) from scans'):
             #     print(self._index, self._count, count)
-            for hash, address, rowid in self._db.execute(
+            for invhash, address, rowid in self._db.execute(
                     'SELECT hash, address, rowid FROM scans LIMIT 1'):
                 self._db.execute('DELETE FROM scans WHERE rowid = ?', (rowid,))
-                obj = self._inv.get_object(hash)
+                obj = self._inv.get_object(invhash)
                 for identity2 in self._wal.identities:
                     if identity2.profile.address.to_bytes() == address:
                         identity = identity2

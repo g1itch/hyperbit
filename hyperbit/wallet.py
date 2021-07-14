@@ -13,7 +13,7 @@ class IdentityType(enum.IntEnum):
     channel = 1
 
 
-class Address(object):
+class Address():
     def __init__(self, version, stream, ripe):
         self.version = version
         self.stream = stream
@@ -54,7 +54,7 @@ class Address(object):
         return s.data
 
 
-class Profile2(object):
+class Profile2():
     def __init__(self, db, address):
         self._db = db
         self._address = address
@@ -91,7 +91,7 @@ class Profile2(object):
         crypto.verify(self.verkey, data, signature)
 
 
-class Identity2(object):
+class Identity2():
     def __init__(self, db, address):
         self._db = db
         self._address = address
@@ -142,11 +142,11 @@ class Identity2(object):
             return (
                 self._db == other._db
                 and self._address.to_bytes() == other._address.to_bytes())
-        else:
-            return NotImplemented
+
+        return NotImplemented
 
 
-class Wallet(object):
+class Wallet():
     def __init__(self, db):
         logger.debug('start')
         self._db = db
@@ -234,7 +234,7 @@ class Wallet(object):
             (identity.address.to_bytes(),))
 
 
-class Names(object):
+class Names():
     def __init__(self, db):
         self._db = db
         if not self._db.execute(
@@ -282,5 +282,5 @@ class Names(object):
             'SELECT name FROM names WHERE ripe = ?', (ripe,)).fetchone()
         if row:
             return row[0]
-        else:
-            return Address(4, config.NETWORK_STREAM, ripe).to_str()
+
+        return Address(4, config.NETWORK_STREAM, ripe).to_str()

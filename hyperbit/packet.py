@@ -6,7 +6,7 @@ import time
 from hyperbit import config, pow, serialize, crypto
 
 
-class Header(object):
+class Header():
     def __init__(self, magic, command, length, checksum):
         self.magic = magic
         self.command = command
@@ -31,13 +31,13 @@ class Header(object):
         return s.data
 
 
-class Generic(object):
+class Generic():
     def __init__(self, command, data):
         self.command = command
         self.data = data
 
 
-class Version(object):
+class Version():
     def __init__(
         self, version, services, timestamp, dst_services, dst_ip, dst_port,
         src_services, src_ip, src_port, nonce, user_agent, streams
@@ -94,7 +94,7 @@ class Version(object):
         return t.data
 
 
-class Verack(object):
+class Verack():
     def __init__(self):
         self.command = 'verack'
 
@@ -112,7 +112,7 @@ Address = collections.namedtuple(
 Endpoint = collections.namedtuple('Endpoint', ['ip', 'port'])
 
 
-class Addr(object):
+class Addr():
     def __init__(self, addresses):
         self.command = 'addr'
         self.addresses = addresses
@@ -121,13 +121,13 @@ class Addr(object):
     def from_bytes(cls, data):
         s = serialize.Deserializer(data)
         addresses = []
-        for i in range(s.vint()):
-            time = s.uint(8)
+        for _ in range(s.vint()):
+            seentime = s.uint(8)
             stream = s.uint(4)
             services = s.uint(8)
             ip = s.bytes(16)
             port = s.uint(2)
-            addresses.append(Address(time, stream, services, ip, port))
+            addresses.append(Address(seentime, stream, services, ip, port))
         return cls(addresses)
 
     @property
@@ -143,7 +143,7 @@ class Addr(object):
         return s.data
 
 
-class Inv(object):
+class Inv():
     def __init__(self, hashes):
         self.command = 'inv'
         self.hashes = hashes
@@ -164,7 +164,7 @@ class Inv(object):
         return s.data
 
 
-class Getdata(object):
+class Getdata():
     def __init__(self, hashes):
         self.command = 'getdata'
         self.hashes = hashes
@@ -185,7 +185,7 @@ class Getdata(object):
         return s.data
 
 
-class Object(object):
+class Object():
     def __init__(self, nonce, expires, type, version, stream, payload):
         self.command = 'object'
         self.nonce = nonce
