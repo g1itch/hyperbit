@@ -312,6 +312,7 @@ class Connection2():
         self.remote_host = self._c.remote_host
         self.remote_port = None
         self.remote_user_agent = None
+        self.fully_established = False
 
     def send_inv(self, obj):
         self._c.send_packet(packet.Inv(
@@ -370,6 +371,8 @@ class Connection2():
                     packet.Verack.from_bytes(generic.data)
                     self.got_verack = True
             if self.got_version and self.got_verack:
+                # No TLS currently
+                self.fully_established = True
                 if generic.command == 'addr':
                     addr = packet.Addr.from_bytes(generic.data)
                     for address in addr.addresses:
