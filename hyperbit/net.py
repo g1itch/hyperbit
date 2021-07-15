@@ -18,6 +18,7 @@ class Connection():
         self.remote_host = host
         self.remote_port = port
         self._s = socket
+        self.inbound = socket is not None
 
     @asyncio.coroutine
     def connect(self):

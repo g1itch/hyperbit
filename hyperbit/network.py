@@ -1,4 +1,4 @@
-# Copyright 2015-2016 HyperBit developers
+# Copyright 2015-2021 HyperBit developers
 # pylint: disable=too-many-instance-attributes
 
 import asyncio
@@ -313,6 +313,7 @@ class Connection2():
         self.remote_port = None
         self.remote_user_agent = None
         self.fully_established = False
+        self.inbound = connection._c.inbound
 
     def send_inv(self, obj):
         self._c.send_packet(packet.Inv(
