@@ -1,4 +1,4 @@
-# Copyright 2015-2016 HyperBit developers
+# Copyright 2015-2021 HyperBit developers
 
 import asyncio
 import ipaddress
@@ -22,6 +22,9 @@ class Connection():
     @asyncio.coroutine
     def connect(self):
         """Establish a connection. Return True on succes, else return False."""
+        if self._s:
+            return True
+
         self._s = socket.socket()
         if self.remote_host.ipv4_mapped:
             host = ipaddress.IPv4Address(

@@ -207,6 +207,9 @@ class PeerManager():
         listener.listen()
         while True:
             connection = yield from listener.accept()
+            self.new_peer(
+                int(time.time()), 1,
+                connection.remote_host.packed, connection.remote_port)
             c = PacketConnection(connection)
             conn = Connection2(om=self.om, peers=self, connection=c)
             self._connections.append(conn)
