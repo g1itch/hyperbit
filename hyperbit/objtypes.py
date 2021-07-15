@@ -1,4 +1,5 @@
 # Copyright 2015-2016 HyperBit developers
+# pylint: disable=too-many-arguments,too-many-instance-attributes
 
 import enum
 
