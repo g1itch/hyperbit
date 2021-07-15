@@ -3,7 +3,7 @@
 import collections
 import time
 
-from hyperbit import config, pow, serialize, crypto
+from hyperbit import config, proofofwork, serialize, crypto
 
 
 class Header():
@@ -226,7 +226,7 @@ class Object():
     @property
     def valid(self):
         ttl = int(self.expires - time.time())
-        completed = pow.check(
+        completed = proofofwork.check(
             self.data[8:], config.NETWORK_TRIALS, config.NETWORK_EXTRA,
             ttl, self.nonce)
         unexpired = ttl > 0
@@ -237,7 +237,7 @@ class Object():
 
     def check_pow(self, trials, extra, timestamp):
         ttl = int(self.expires - timestamp)
-        return pow.check(self.data[8:], trials, extra, ttl, self.nonce)
+        return proofofwork.check(self.data[8:], trials, extra, ttl, self.nonce)
 
     @property
     def data(self):
