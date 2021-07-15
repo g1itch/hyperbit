@@ -4,10 +4,11 @@ from hyperbit import crypto
 from hyperbit.gui import qidenticon
 
 
-def get(data, size=10):
+def get(data, size=10, gray=False):
     # TODO salt identicons
     if data == b'':
         hash = b''
     else:
         hash = crypto.sha512(data)
-    return qidenticon.render_identicon(int.from_bytes(hash, 'big'), size, True, 0, 0)
+    return qidenticon.render_identicon(
+        int.from_bytes(hash, 'big'), size, True, gray)
