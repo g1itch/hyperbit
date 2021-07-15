@@ -5,7 +5,7 @@ import os
 from hyperbit import crypto
 
 
-def pow(payload, trials, extra, ttl):
+def do_pow(payload, trials, extra, ttl):
     length = len(payload) + 8 + extra
     target = int(2**64 / (trials * (length + max(ttl, 0) * length / (2**16))))
     value = target + 1

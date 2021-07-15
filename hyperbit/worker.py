@@ -4,7 +4,7 @@ import asyncio
 import concurrent.futures
 import logging
 
-from hyperbit import packet, pow
+from hyperbit import packet, proofofwork
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class Worker():
             'INSERT INTO worker VALUES (?, ?, ?, ?)',
             (obj.data, trials, extra, timestamp))
         nonce = yield from loop.run_in_executor(
-            self._executor, pow.pow, data, trials, extra, ttl)
+            self._executor, proofofwork.do_pow, data, trials, extra, ttl)
         self._db.execute('DELETE FROM worker WHERE obj = ?', (obj.data,))
         obj.nonce = nonce
         for func in self.on_object_done:
