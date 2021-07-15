@@ -1,4 +1,5 @@
 # Copyright 2015-2016 HyperBit developers
+# pylint: disable=too-many-locals
 
 import hashlib
 import os
