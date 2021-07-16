@@ -16,6 +16,12 @@
    </property>
    <item row="1" column="1">
      <widget class="QTableView" name="tableView">
+       <attribute name="horizontalHeaderHighlightSections">
+         <bool>false</bool>
+       </attribute>
+       <property name="alternatingRowColors">
+         <bool>true</bool>
+       </property>
        <property name="selectionBehavior">
          <enum>QAbstractItemView::SelectRows</enum>
        </property>
