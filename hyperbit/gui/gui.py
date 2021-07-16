@@ -7,6 +7,8 @@ from PyQt5 import uic
 import os.path
 import sys
 
+import pkg_resources
+
 from hyperbit import base58, objtypes, wallet
 from hyperbit.gui import models, identicon
 
@@ -14,8 +16,9 @@ from hyperbit.gui import models, identicon
 def resource_path(path):
     try:
         return os.path.join(sys._MEIPASS, path)
-    except:
-        return os.path.join(os.path.dirname(__file__), path)
+    except AttributeError:
+        return pkg_resources.resource_filename(__name__, path)
+        # return os.path.join(os.path.dirname(__file__), path)
 
 
 class NetworkConfigDialog(QDialog):
