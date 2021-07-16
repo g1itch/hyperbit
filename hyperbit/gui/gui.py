@@ -244,25 +244,27 @@ class StatusTab(QWidget):
         self.show_connections()
 
     def show_connections(self, connections=True):
-        if connections is False:
-            model = models.ObjectModel(self._core.inv)
+        if connections is True:
+            model = models.ConnectionModel(self._core.peers)
             proxyModel = QSortFilterProxyModel()
             proxyModel.setSourceModel(model)
             self.tableView.setModel(proxyModel)
-            # resizing
-            header = self.tableView.horizontalHeader()
-            header.setSectionResizeMode(QHeaderView.ResizeToContents)
-            header.setSectionResizeMode(0, QHeaderView.Stretch)
-            header.setSortIndicator(2, Qt.DescendingOrder)
-            return
-        model = models.ConnectionModel(self._core.peers)
-        proxyModel = QSortFilterProxyModel()
-        proxyModel.setSourceModel(model)
-        self.tableView.setModel(proxyModel)
-        # resizing
+
+        # common resizing rule
         header = self.tableView.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeToContents)
         header.setSectionResizeMode(0, QHeaderView.Stretch)
+
+        header.setSortIndicator(2, Qt.DescendingOrder)
+
+        if connections:
+            header.setSortIndicator(2, Qt.AscendingOrder)
+            return
+
+        model = models.ObjectModel(self._core.inv)
+        proxyModel = QSortFilterProxyModel()
+        proxyModel.setSourceModel(model)
+        self.tableView.setModel(proxyModel)
 
     def on_stats_changed(self):
         self.objects.setText(str(self._core.inv.count()))
