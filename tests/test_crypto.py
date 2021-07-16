@@ -5,6 +5,15 @@ from binascii import unhexlify
 from hyperbit import crypto
 
 
+# arithmetic
+sample_factor = 66858749573256452658262553961707680376751171096153613379801854825275240965733
+# G * sample_factor
+sample_point = (
+    33567437183004486938355437500683826356288335339807546987348409590129959362313,
+    94730058721143827257669456336351159718085716196507891067256111928318063085006
+)
+
+# keys
 sample_pubsigningkey = unhexlify(
     '4a367f049ec16cb6b6118eb734a9962d10b8db59c890cd08f210c43ff08bdf09d'
     '16f502ca26cd0713f38988a1237f1fc8fa07b15653c996dc4013af6d15505ce')
@@ -19,12 +28,12 @@ sample_ripe = unhexlify('003cd097eb7f35c87b5dc8b4538c22cb55312a9f')
 # stream: 1, version: 2
 # sample_address = 'BM-onkVu1KKL2UaUss5Upg9vXmqd3esTmV79'
 
-sample_factor = 66858749573256452658262553961707680376751171096153613379801854825275240965733
-# G * sample_factor
-sample_point = (
-    33567437183004486938355437500683826356288335339807546987348409590129959362313,
-    94730058721143827257669456336351159718085716196507891067256111928318063085006
-)
+# deterministic
+sample_seed = 'TIGER, tiger, burning bright. In the forests of the night'
+sample_sigkey = unhexlify(
+    '37544905ef96a24caf78bc06e3e7406818669c2d21a58303ff79398dd16b09f3')
+sample_enkey = unhexlify(
+    '7b8c34ca5d3a53190dce6911a425c5c08ecabe5ac9fb2dc6209e487561d0e39c')
 
 
 class TestCrypto(unittest.TestCase):
@@ -49,3 +58,9 @@ class TestCrypto(unittest.TestCase):
         ripe_hash = crypto.to_ripe(
             sample_pubsigningkey, sample_pubencryptionkey)
         self.assertEqual(ripe_hash, sample_ripe)
+
+    def test_deterministic(self):
+        """Generate and check deterministic keys"""
+        self.assertEqual(
+            crypto.gen_deterministic(sample_seed),
+            (sample_sigkey, sample_enkey))
