@@ -56,6 +56,24 @@ def gen_priv():
     return k.private_numbers().private_value.to_bytes(32, 'big')
 
 
+def gen_deterministic(text):
+    """Deterministically generate two private keys from given text"""
+    for i in range(0, 2**64, 2):
+        s1 = serialize.Serializer()
+        s1.str(text)
+        s1.vint(i)
+        sigkey = sha512(s1.data)[0:32]
+        s2 = serialize.Serializer()
+        s2.str(text)
+        s2.vint(i + 1)
+        deckey = sha512(s2.data)[0:32]
+        verkey = priv_to_pub(sigkey)
+        enckey = priv_to_pub(deckey)
+        ripe = to_ripe(verkey, enckey)
+        if ripe[0:1] == b'\x00':
+            return sigkey, deckey
+
+
 def priv_to_pub(privkey):
     """Convert a private key to the corresponding public key."""
     assert len(privkey) == 32
