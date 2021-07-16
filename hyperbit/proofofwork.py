@@ -1,7 +1,5 @@
 # Copyright 2015-2016 HyperBit developers
 
-import os
-
 from hyperbit import crypto
 
 
@@ -11,7 +9,7 @@ def do_pow(payload, trials, extra, ttl):
     value = target + 1
     initial = crypto.sha512(payload)
     # Make it harder for attackers to determine how many numbers we have tried
-    nonce = int.from_bytes(os.urandom(8), 'big')
+    nonce = int.from_bytes(crypto.urandom(8), 'big')
     while value > target:
         nonce = (nonce + 1) % (2**64)
         a = nonce.to_bytes(8, 'big')
