@@ -3,6 +3,7 @@
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QSortFilterProxyModel, QVariant
 from PyQt5.QtGui import QBrush, QColor, QFont
 import binascii
+import time
 from datetime import datetime
 from hyperbit.gui import identicon
 from hyperbit import wallet
@@ -24,7 +25,7 @@ class ConnectionModel(QAbstractTableModel):
         self.endResetModel()
 
     def columnCount(self, QModelIndex_parent=None, *args, **kwargs):
-        return 2
+        return 3
 
     def rowCount(self, QModelIndex_parent=None, *args, **kwargs):
         return len(self._connections)
@@ -32,7 +33,7 @@ class ConnectionModel(QAbstractTableModel):
     def headerData(self, index, orientation, role=None):
         if role == Qt.DisplayRole:
             if orientation == Qt.Horizontal:
-                return ['Peer', 'User Agent'][index]
+                return ['Peer', 'User Agent', 'Connected'][index]
 
     def data(self, index, role=None):
         connection = self._connections[index.row()]
@@ -42,6 +43,10 @@ class ConnectionModel(QAbstractTableModel):
                 return '[{0.remote_host}]:{0.remote_port}'.format(connection)
             if column == 1:
                 return connection.remote_user_agent
+            if column == 2:
+                return time.strftime('%x, %X', time.localtime(
+                    connection.peers._peers[
+                        connection.remote_host.packed].timestamp))
         if role == Qt.BackgroundRole:
             return QColor("green" if connection.inbound else "yellow")
 
