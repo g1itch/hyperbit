@@ -10,7 +10,7 @@ import sys
 import pkg_resources
 
 from hyperbit import base58, objtypes, wallet
-from hyperbit.gui import models, identicon
+from hyperbit.gui import models, identicon, parser
 
 
 def resource_path(path):
@@ -135,6 +135,8 @@ class MessagesTab(QSplitter):
 
         self.messages_reply.clicked.connect(self._on_messages_reply_clicked)
 
+        self.cleaner = parser.MessageCleaner()
+
     def _on_threads_context_menu_event(self, event):
         row = self.threads.indexAt(event.pos()).row()
         if row < 0:
@@ -164,7 +166,7 @@ class MessagesTab(QSplitter):
             format.setFontWeight(QFont.Bold)
             format.setFontPointSize(14)
             cursor.setCharFormat(format)
-            first = True
+
             cursor.insertText(thread.subject.strip())
             for comment in thread.comments:
                 charFormat = QTextCharFormat()
@@ -184,8 +186,13 @@ class MessagesTab(QSplitter):
                 blockFormat.setTopMargin(3.0)
                 blockFormat.setBottomMargin(3.0)
                 cursor.insertBlock(blockFormat, charFormat)
-                cursor.insertText(comment.text.strip())
-                first = False
+                text = comment.text.strip()
+
+                clean = self.cleaner.clean_html(text)
+
+                (cursor.insertHtml if self.cleaner.html
+                    else cursor.insertText)(clean)
+
             thread.unread = 0
 
     def _on_messages_reply_clicked(self):
