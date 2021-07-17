@@ -13,22 +13,17 @@ class ConnectionModel(QAbstractTableModel):
     def __init__(self, peers):
         super().__init__()
         self._peers = peers
-        self._connections = []
         peers.on_stats_changed.append(self._update)
 
     def _update(self):
         self.beginResetModel()
-        self._connections.clear()
-        for connection in self._peers._connections:
-            if connection.fully_established:
-                self._connections.append(connection)
         self.endResetModel()
 
     def columnCount(self, QModelIndex_parent=None, *args, **kwargs):
         return 3
 
     def rowCount(self, QModelIndex_parent=None, *args, **kwargs):
-        return len(self._connections)
+        return self._peers.count_connected()
 
     def headerData(self, index, orientation, role=None):
         if role == Qt.DisplayRole:
@@ -36,7 +31,13 @@ class ConnectionModel(QAbstractTableModel):
                 return ['Peer', 'User Agent', 'Connected'][index]
 
     def data(self, index, role=None):
-        connection = self._connections[index.row()]
+        try:
+            connection = [
+                connection for connection in self._peers._connections
+                if connection.fully_established][index.row()]
+        except IndexError:
+            return None
+
         if role == Qt.DisplayRole:
             column = index.column()
             if column == 0:
