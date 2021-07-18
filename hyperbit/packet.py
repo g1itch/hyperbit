@@ -128,7 +128,13 @@ class Addr():
             services = s.uint(8)
             ip = s.bytes(16)
             port = s.uint(2)
-            addresses.append(Address(seentime, stream, services, ip, port))
+            try:  # check the correctness of the timestamp
+                ts = time.localtime(seentime)
+                assert ts < time.localtime()
+            except (AssertionError, OSError, OverflowError, ValueError):
+                break  # FIXME: should not use any data from incorect addr
+            else:
+                addresses.append(Address(seentime, stream, services, ip, port))
         return cls(addresses)
 
     @property
