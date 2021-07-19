@@ -95,13 +95,13 @@ class IdentityModel(QAbstractTableModel):
             return None
 
     def data(self, index, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole or role == Qt.EditRole:
+        if role in (Qt.DisplayRole, Qt.EditRole, Qt.ToolTipRole):
             identity = self.identities[index.row()]
             column = index.column()
-            if column == 0:
-                return self.wal.names.get(identity.profile.address.ripe)
-            elif column == 1:
+            if column == 1 or role == Qt.ToolTipRole:
                 return identity.profile.address.to_str()
+            elif column == 0:
+                return self.wal.names.get(identity.profile.address.ripe)
         elif role == Qt.DecorationRole:
             identity = self.identities[index.row()]
             column = index.column()
