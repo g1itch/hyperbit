@@ -245,7 +245,7 @@ class ThreadModel(QAbstractTableModel):
             return None
 
     def data(self, index, role=None):
-        if role == Qt.DisplayRole:
+        if role in (Qt.DisplayRole, Qt.ToolTipRole):
             thread = self.get_thread(index)
             column = index.column()
             if column == 0:
@@ -254,7 +254,7 @@ class ThreadModel(QAbstractTableModel):
             thread = self.get_thread(index)
             column = index.column()
             if column == 0:
-                return identicon.get(thread.creator, 8)
+                return identicon.get(thread.creator or thread.channel, 8)
             else:
                 return None
         elif role == Qt.FontRole:
