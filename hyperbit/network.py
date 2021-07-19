@@ -102,9 +102,13 @@ class PeerManager():
             self.new_peer(0, 1, peer[0], peer[1], False)
 
     def send_inv(self, obj):
+        closed = []
         for conn in self._connections:
             if conn.got_version:
-                conn.send_inv(obj)
+                if conn.send_inv(obj) is False:
+                    closed.append(conn)
+        for conn in closed:
+            self._on_disconnect(conn)
 
     def get_best_peer(self):
         for host, in self._db.execute(
@@ -219,7 +223,7 @@ class PeerManager():
             conn.on_connect.append(
                 lambda: self._on_connect(connection.remote_host.packed))
             conn.on_disconnect.append(
-                lambda: self._on_disconnect(connection.remote_host.packed))
+                lambda: self._on_disconnect(connection))
             asyncio.get_event_loop().create_task(conn.run())
 
     def _on_connect(self, host):
@@ -227,8 +231,9 @@ class PeerManager():
         for func in self.on_stats_changed:
             func()
 
-    def _on_disconnect(self, host):
-        self._peers[host].set_disconnected()
+    def _on_disconnect(self, conn):
+        self._connections.remove(conn)
+        self._peers[conn.remote_host.packed].set_disconnected()
         for func in self.on_stats_changed:
             func()
 
@@ -243,7 +248,7 @@ class PeerManager():
             conn = Connection2(om=self.om, peers=self, connection=c)
             self._connections.append(conn)
             conn.on_connect.append(lambda: self._on_connect(host))
-            conn.on_disconnect.append(lambda: self._on_disconnect(host))
+            conn.on_disconnect.append(lambda: self._on_disconnect(conn))
             asyncio.get_event_loop().create_task(conn.run())
             # conn.set_host_port(host, port)
 
@@ -280,8 +285,9 @@ class PacketConnection():
         length = len(payloaddata)
         checksum = crypto.sha512(payloaddata)[:4]
         header = packet.Header(magic, command, length, checksum)
-        self._c.send(header.to_bytes())
-        self._c.send(payloaddata)
+        return (
+            self._c.send(header.to_bytes())
+            and self._c.send(payloaddata))
 
     @asyncio.coroutine
     def recv_packet(self):
@@ -319,7 +325,7 @@ class Connection2():
         self.inbound = connection._c.inbound
 
     def send_inv(self, obj):
-        self._c.send_packet(packet.Inv(
+        return self._c.send_packet(packet.Inv(
             hashes=[obj.hash]
         ))
 
@@ -368,8 +374,11 @@ class Connection2():
         while generic:
             if not self.got_version:
                 if generic.command == 'version':
-                    yield from self.handle_version(
-                        packet.Version.from_bytes(generic.data))
+                    try:
+                        yield from self.handle_version(
+                            packet.Version.from_bytes(generic.data))
+                    except AssertionError:
+                        return
             if not self.got_verack:
                 if generic.command == 'verack':
                     packet.Verack.from_bytes(generic.data)
@@ -395,7 +404,8 @@ class Connection2():
                     if new_hashes > 0:
                         logger.info(
                             'send getdata for %s hashes', new_hashes)
-                        self._c.send_packet(getdata)
+                        if self._c.send_packet(getdata) is False:
+                            break
                 elif generic.command == 'getdata':
                     getdata = packet.Getdata.from_bytes(generic.data)
                     logger.info(
@@ -403,15 +413,18 @@ class Connection2():
                     for invhash in getdata.hashes:
                         obj = self.om.get_object(invhash)
                         if obj is not None:
-                            self._c.send_packet(obj)
+                            if self._c.send_packet(obj) is False:
+                                self.set_disconnected()
+                                return
                             yield
                 elif generic.command == 'object':
                     obj = packet.Object.from_bytes(generic.data)
                     self.om.add_object(obj)
             generic = yield from self._c.recv_packet()
 
+        self.set_disconnected()
+
+    def set_disconnected(self):
         for func in self.on_disconnect:
             func()
         logger.info('disconnected')
-
-        self.peers._connections.remove(self)
