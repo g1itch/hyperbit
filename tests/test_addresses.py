@@ -2,7 +2,7 @@
 import unittest
 from binascii import unhexlify
 
-from hyperbit import wallet, base58
+from hyperbit import base58, crypto, wallet
 
 
 # stream: 1, version: 2
@@ -57,3 +57,15 @@ class TestAddresses(unittest.TestCase):
         """Create addresse, convert it to str and check the result"""
         addr = wallet.Address(2, 1, sample_ripe)
         self.assertEqual(addr.to_str(), sample_address[3:])
+
+    def test_wif(self):
+        """Decode well known WIFs and compare the result to known address"""
+        addr = wallet.Address(
+            4, 1, crypto.to_ripe(
+                crypto.priv_to_pub(base58.decode_wif(
+                    '5K42shDERM5g7Kbi3JT5vsAWpXMqRhWZpX835M2pdSoqQQpJMYm')),
+                crypto.priv_to_pub(base58.decode_wif(
+                    '5HwugVWm31gnxtoYcvcK7oywH2ezYTh6Y4tzRxsndAeMi6NHqpA'))))
+        # [chan] bitmessage
+        self.assertEqual(
+            addr.to_str(), '2cWy7cvHoq3f1rYMerRJp8PT653jjSuEdY')
