@@ -30,6 +30,7 @@ setup(
     install_requires=requirements,
     python_requires='>=3.6',  # qasync requirement
     extras_require={
+        'html': ['lxml'],
         'qt': ['PyQt5', 'qasync'],
         'tor': ['PySocks']
     },
