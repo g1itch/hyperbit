@@ -1,5 +1,2 @@
 appdirs
 cryptography
-PyQt5
-PySocks
-qasync
