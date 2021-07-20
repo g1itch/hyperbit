@@ -65,7 +65,10 @@ class Connection():
             except ConnectionResetError:
                 return None
         loop = asyncio.get_event_loop()
-        return (yield from loop.run_in_executor(None, func))
+        try:
+            return (yield from loop.run_in_executor(None, func))
+        except TimeoutError:
+            return None
 
     def shutdown(self):
         """
