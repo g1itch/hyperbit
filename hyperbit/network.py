@@ -8,7 +8,10 @@ import os
 import socket
 import time
 
-import socks
+try:
+    import socks
+except ImportError:
+    socks = None
 
 from hyperbit import config, crypto, net, packet, __version__
 
@@ -153,7 +156,7 @@ class PeerManager():
 
     @asyncio.coroutine
     def run(self):
-        if self._core.get_config('network.proxy') == 'tor':
+        if self._core.get_config('network.proxy') == 'tor' and socks:
             logger.info('connecting through tor')
             if self._core.get_config('network.proxy') == 'tor':
                 host = self._core.get_config('network.tor_host')

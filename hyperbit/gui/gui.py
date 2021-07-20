@@ -248,8 +248,13 @@ class StatusTab(QWidget):
 
     def configure_network(self):
         network_dialog = NetworkConfigDialog(self._core, self)
-        if self._core.get_config('network.proxy') == 'tor':
-            network_dialog.raTor.setChecked(True)
+        try:
+            __import__('socks')
+        except ImportError:
+            network_dialog.raTor.setEnabled(False)
+        else:
+            if self._core.get_config('network.proxy') == 'tor':
+                network_dialog.raTor.setChecked(True)
         if self._core.get_config('network.proxy') == 'trusted':
             network_dialog.raTrusted.setChecked(True)
         network_dialog.liListen.setText(str(self._core.get_config('network.listen_port', 8444)))
