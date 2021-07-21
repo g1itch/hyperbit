@@ -24,7 +24,7 @@ setup(
     license='MIT',
     url='https://github.com/g1itch/hyperbit',
     packages=['hyperbit', 'hyperbit.gui'],
-    package_data={'': ['hyperbit/gui/data/*.ui']},
+    package_data={'': ['gui/data/*.ui']},
     entry_points={
         'console_scripts': ['hyperbit = hyperbit.main:main']},
     install_requires=requirements,
