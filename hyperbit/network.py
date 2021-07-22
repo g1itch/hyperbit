@@ -391,10 +391,15 @@ class Connection2():
                         obj = self.om.get_object(invhash)
                         if obj is None:
                             getdata.hashes.append(invhash)
-                    if len(getdata.hashes) > 0:
+                    new_hashes = len(getdata.hashes)
+                    if new_hashes > 0:
+                        logger.info(
+                            'send getdata for %s hashes', new_hashes)
                         self._c.send_packet(getdata)
                 elif generic.command == 'getdata':
                     getdata = packet.Getdata.from_bytes(generic.data)
+                    logger.info(
+                        'received getdata for %s hashes', len(getdata.hashes))
                     for invhash in getdata.hashes:
                         obj = self.om.get_object(invhash)
                         if obj is not None:

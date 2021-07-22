@@ -65,7 +65,7 @@ class Core():
         yield from self.peers.run()
 
     def scan_object(self, obj):
-        logger.info(
+        logger.debug(
             'scan object with hash %s', binascii.hexlify(obj.hash).decode())
         self.scanner.scan(obj.hash, None)
         for identity in self.wal.identities:
