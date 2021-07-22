@@ -23,35 +23,8 @@ and simple or trivial encoding (no msgpack).
 
 # Installation
 
-## Debian / Ubuntu
-
-Install dependencies:
-
-    apt-get install python3-pip libqt5widgets5
-    pip3 install -r requirements.txt
-
-Run HyperBit:
-
-    python3 /path/to/hyperbit/hyperbit.py
-
-## Windows
-
-Install Python 3.8 from [https://www.python.org/downloads/release/python-3810/](https://www.python.org/downloads/release/python-3810/).
-Make sure to select "Add python.exe to Path".
-
-Open a command prompt and run this command:
+Basic idea:
 
     pip install -r requirements.txt
-
-Run HyperBit:
-
-    python c:\path\to\hyperbit\hyperbit.py
-
-If you receive a Windows Firewall notification, make sure to allow access.
-
-## Mac
-
-Not officially supported but should work if you install the dependencies first.
-If you figure out how to do please let me know and I'll happily add the
-instructions.
-
+	pip install .[qt,tor]
+	hyperbit
