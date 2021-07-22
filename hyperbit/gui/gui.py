@@ -293,7 +293,7 @@ class MainWindow(QMainWindow):
         self._status_tab = StatusTab(self._core, self)
         self.tab.addTab(ChannelsTab(self._core, self), 'Channels')
         self.tab.addTab(MessagesTab(self._core, self), 'Messages')
-        self.tab.addTab(ObjectsTab(self._core, self), 'Objects')
+        # self.tab.addTab(ObjectsTab(self._core, self), 'Objects')
         self.tab.addTab(self._status_tab, 'Status')
         self.tab.setCurrentIndex(1)
 
