@@ -425,7 +425,12 @@ class Connection2():
                 elif generic.command == 'object':
                     obj = packet.Object.from_bytes(generic.data)
                     self.om.add_object(obj)
-            generic = yield from self._c.recv_packet()
+
+            try:
+                generic = yield from self._c.recv_packet()
+            except OSError:
+                logger.warning('OSError in connection loop', exc_info=True)
+                break
 
         self.set_disconnected()
 
