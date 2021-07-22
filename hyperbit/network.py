@@ -233,7 +233,12 @@ class PeerManager():
 
     def _on_disconnect(self, conn):
         self._connections.remove(conn)
-        self._peers[conn.remote_host.packed].set_disconnected()
+        try:
+            self._peers[conn.remote_host.packed].set_disconnected()
+        except KeyError:
+            # should be trusted peer
+            logger.warning('No such peer %s', conn.remote_host.packed)
+            pass
         for func in self.on_stats_changed:
             func()
 
