@@ -95,8 +95,7 @@ class Listener():
         else:
             return True
 
-    @asyncio.coroutine
-    def accept(self):
+    async def accept(self):
         """Return the next pending connection or None in case of error."""
         def func():
             try:
@@ -104,7 +103,7 @@ class Listener():
             except OSError:
                 return None
         loop = asyncio.get_event_loop()
-        result = yield from loop.run_in_executor(None, func)
+        result = await loop.run_in_executor(None, func)
         if result:
             s, (host, port) = result
             return Connection(ipv6(host), port, s)
