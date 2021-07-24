@@ -13,10 +13,14 @@ class ConnectionModel(QAbstractTableModel):
     def __init__(self, peers):
         super().__init__()
         self._peers = peers
+        self._connections = []
         peers.on_stats_changed.append(self._update)
 
     def _update(self):
         self.beginResetModel()
+        self._connections = [
+            connection for connection in self._peers._connections
+            if connection.fully_established]
         self.endResetModel()
 
     def columnCount(self, QModelIndex_parent=None, *args, **kwargs):
@@ -32,9 +36,7 @@ class ConnectionModel(QAbstractTableModel):
 
     def data(self, index, role=None):
         try:
-            connection = [
-                connection for connection in self._peers._connections
-                if connection.fully_established][index.row()]
+            connection = self._connections[index.row()]
         except IndexError:
             return None
 
