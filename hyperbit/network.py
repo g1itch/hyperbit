@@ -13,6 +13,12 @@ try:
 except ImportError:
     socks = None
 
+try:
+    import aioupnp
+    from aioupnp.upnp import UPnP
+except ImportError:
+    UPnP = None
+
 from hyperbit import config, crypto, net, packet, __version__
 
 logger = logging.getLogger(__name__)
@@ -208,12 +214,26 @@ class PeerManager():
                     self._open_one()
                 yield from asyncio.sleep(10)
 
-    @asyncio.coroutine
-    def _run2(self):
-        listener = net.Listener(self._core.get_config('network.listen_port'))
+    async def _run2(self):
+        port = self._core.get_config('network.listen_port')
+        listener = net.Listener(port)
         listener.listen()
+
+        if UPnP:
+            try:
+                upnp = await UPnP.discover()
+            except aioupnp.fault.UPnPError:
+                logger.warning('UPnP is not available')
+            else:
+                ext_ip = await upnp.get_external_ip()
+                logging.info('External IP is %s', ext_ip)
+                await upnp.add_port_mapping(
+                    port, 'TCP', port, upnp.lan_address, 'HyperBit bitmessage')
+
         while True:
-            connection = yield from listener.accept()
+            connection = await listener.accept()
+            if not connection:
+                continue
             self.new_peer(
                 int(time.time()), 1,
                 connection.remote_host.packed, connection.remote_port)
@@ -225,6 +245,7 @@ class PeerManager():
             conn.on_disconnect.append(
                 lambda: self._on_disconnect(conn))
             asyncio.get_event_loop().create_task(conn.run())
+        await upnp.delete_port_mapping(port, 'TCP')
 
     def _on_connect(self, host):
         self._peers[host].set_connected()
