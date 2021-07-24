@@ -176,7 +176,7 @@ class PeerManager():
                 socket.socket = socks.socksocket
         elif self._core.get_config('network.proxy') == 'disabled':
             logger.info('connecting directly to the internet')
-            asyncio.get_event_loop().create_task(self._run2())
+            asyncio.get_event_loop().create_task(self._run_inbound())
         if self._core.get_config('network.proxy') == 'trusted':
             logger.info('connecting to trusted peer')
             while True:
@@ -214,7 +214,7 @@ class PeerManager():
                     self._open_one()
                 yield from asyncio.sleep(10)
 
-    async def _run2(self):
+    async def _run_inbound(self):
         port = self._core.get_config('network.listen_port')
         listener = net.Listener(port)
         listener.listen()
