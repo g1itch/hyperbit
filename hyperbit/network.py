@@ -254,12 +254,12 @@ class PeerManager():
 
     def _on_disconnect(self, conn):
         self._connections.remove(conn)
+        host = ipaddress.ip_address(conn.remote_host)
+        logger.info('disconnected %s', host)
         try:
             self._peers[conn.remote_host.packed].set_disconnected()
-        except KeyError:
-            # should be trusted peer
-            logger.warning('No such peer %s', conn.remote_host.packed)
-            pass
+        except KeyError:  # should be trusted peer
+            logger.warning('No such peer %s', host)
         for func in self.on_stats_changed:
             func()
 
@@ -381,7 +381,7 @@ class Connection2():
             for func in self.on_disconnect:
                 func()
             return
-        logger.info('connected')
+        logger.info('connected %s', ipaddress.ip_address(self.remote_host))
         self._c.send_packet(packet.Version(
             version=3,
             services=1,
@@ -458,4 +458,3 @@ class Connection2():
     def set_disconnected(self):
         for func in self.on_disconnect:
             func()
-        logger.info('disconnected')
