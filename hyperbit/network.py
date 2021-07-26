@@ -446,7 +446,12 @@ class Connection2():
                 elif generic.command == 'object':
                     obj = packet.Object.from_bytes(generic.data)
                     self.om.add_object(obj)
-
+                elif generic.command == 'ping':
+                    self._c.send_packet(packet.Generic('pong', b''))
+                else:
+                    logger.warning('unsuitable command %s', generic.command)
+                # FIXME: there is a possibility for unknown command
+                # before fully_established
             try:
                 generic = yield from self._c.recv_packet()
             except OSError:
