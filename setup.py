@@ -31,7 +31,8 @@ setup(
     python_requires='>=3.6',  # qasync requirement
     extras_require={
         'qt': ['PyQt5', 'qasync'],
-        'tor': ['PySocks']
+        'tor': ['PySocks'],
+        'upnp': ['aioupnp']
     },
     long_description=long_description,
     long_description_content_type="text/markdown",
