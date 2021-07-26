@@ -65,6 +65,11 @@ class Core():
         yield from self.peers.run()
 
     def scan_object(self, obj):
+        if obj.type == objtypes.Type.onionpeer:
+            peer = objtypes.Onionpeer.from_bytes(obj.payload)
+            self.peers.new_peer(
+                obj.expires - 7 * 24 * 3600, 1, peer.host, peer.port)
+            return
         logger.debug(
             'scan object with hash %s', binascii.hexlify(obj.hash).decode())
         self.scanner.scan(obj.hash, None)

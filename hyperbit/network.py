@@ -2,9 +2,10 @@
 # pylint: disable=too-many-instance-attributes
 
 import asyncio
+import base64
+import binascii
 import ipaddress
 import logging
-import os
 import socket
 import time
 
@@ -19,7 +20,7 @@ try:
 except ImportError:
     UPnP = None
 
-from hyperbit import config, crypto, net, packet, __version__
+from hyperbit import config, crypto, net, objtypes, packet, __version__
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,7 @@ class PeerManager():
 
         self.om = inv
         self.client_nonce = int.from_bytes(
-            os.urandom(8), byteorder='big', signed=False)
+            crypto.urandom(8), byteorder='big', signed=False)
         self.on_add_peer = []
         self.on_stats_changed = []
 
@@ -123,6 +124,29 @@ class PeerManager():
             return self._peers[host]
         return None
 
+    def del_onion_peers(self):
+        self._db.execute(
+            'DELETE FROM peers WHERE host LIKE ?',
+            (b'\xfd\x87\xd8\x7e\xeb\x43%',))
+
+    def get_onion_peers(self):
+        for invhash in self.om.get_hashes():
+            obj = self.om.get_object(invhash)
+            if obj.type != objtypes.Type.onionpeer:
+                continue
+            try:
+                peer = objtypes.Onionpeer.from_bytes(obj.payload)
+                logger.info('peer: %s', binascii.hexlify(obj.payload))
+            except Exception:
+                logger.warning(
+                    'Not an onion peer %s', binascii.hexlify(invhash),
+                    exc_info=True)
+                return
+            logger.info(
+                'version: %s, stream: %s, port: %s',
+                peer.version, peer.stream, peer.port)
+            self.new_peer(obj.expires - 7 * 24 * 3600, 1, peer.host, peer.port)
+
     def new_peer(self, timestamp, services, host, port, check_private=True):
         if isinstance(host, str):
             ip = ipaddress.ip_address(host)
@@ -132,6 +156,25 @@ class PeerManager():
                 host = bytes.fromhex('00000000000000000000ffff') + ip.packed
             else:
                 host = ip.packed
+            logger.debug(
+                'new IP peer: %s:%i (%s)', ip, port,
+                time.strftime('%x, %X', time.localtime(timestamp)))
+        elif isinstance(host, bytes):
+            if host[:6] == b'\xfd\x87\xd8\x7e\xeb\x43':
+                logger.debug(
+                    'new onion peer: %s:%i (%s)',
+                    base64.b32encode(host[6:]).lower(), port,
+                    time.strftime('%x, %X', time.localtime(timestamp)))
+            else:
+                try:
+                    ipaddress.IPv6Address(host)
+                except ipaddress.AddressValueError:
+                    logger.warning(
+                        'Bad host in new peer: %r', binascii.hexlify(host))
+        else:
+            logger.warning(
+                'Bad host in new peer: %r', binascii.hexlify(host))
+            return None
         if host in self._peers:
             self._db.execute(
                 'UPDATE peers SET timestamp = max(timestamp, ?)'
@@ -168,14 +211,15 @@ class PeerManager():
     def run(self):
         if self._core.get_config('network.proxy') == 'tor' and socks:
             logger.info('connecting through tor')
-            if self._core.get_config('network.proxy') == 'tor':
-                host = self._core.get_config('network.tor_host')
-                port = self._core.get_config('network.tor_port')
-                socks.set_default_proxy(
-                    socks.PROXY_TYPE_SOCKS5, host, port, True)
-                socket.socket = socks.socksocket
+            self.get_onion_peers()
+            host = self._core.get_config('network.tor_host')
+            port = self._core.get_config('network.tor_port')
+            socks.set_default_proxy(
+                socks.PROXY_TYPE_SOCKS5, host, port, True)
+            socket.socket = socks.socksocket
         elif self._core.get_config('network.proxy') == 'disabled':
             logger.info('connecting directly to the internet')
+            self.del_onion_peers()
             asyncio.get_event_loop().create_task(self._run_inbound())
         if self._core.get_config('network.proxy') == 'trusted':
             logger.info('connecting to trusted peer')
@@ -248,6 +292,12 @@ class PeerManager():
         await upnp.delete_port_mapping(port, 'TCP')
 
     def _on_connect(self, host):
+        if isinstance(host, str) and host.endswith('.onion'):
+            logger.info('connected %s', host)
+            host = b'\xfd\x87\xd8\x7e\xeb\x43' + base64.b32decode(
+                host[:-6].upper())
+        else:
+            logger.info('connected %s', net.ipv6(host))
         self._peers[host].set_connected()
         for func in self.on_stats_changed:
             func()
@@ -255,28 +305,54 @@ class PeerManager():
     def _on_disconnect(self, conn):
         self._connections.remove(conn)
         try:
-            self._peers[conn.remote_host.packed].set_disconnected()
-        except KeyError:
-            logger.warning(  # should be trusted peer
-                'No such peer %s', ipaddress.ip_address(conn.remote_host))
-            pass
+            host = conn.remote_host.packed
+            logger.info('disconnected %s', ipaddress.ip_address(host))
+        except AttributeError:  # an onion peer
+            logger.info('disconnected %s', conn.remote_host)
+            host = b'\xfd\x87\xd8\x7e\xeb\x43' + base64.b32decode(
+                conn.remote_host[:-6].upper())
+
+        try:
+            self._peers[host].set_disconnected()
+        except KeyError:  # should be trusted peer
+            logger.warning('No such peer: %s', host)
+
         for func in self.on_stats_changed:
             func()
 
     def _open_one(self):
         best_peer = self.get_best_peer()
-        if best_peer is not None:
-            host = best_peer.host
-            port = best_peer.port
-            logger.info('trying %s %s', ipaddress.ip_address(host), port)
-            best_peer.set_pending()
-            c = PacketConnection(net.Connection(net.ipv6(host), port))
-            conn = Connection2(om=self.om, peers=self, connection=c)
-            self._connections.append(conn)
-            conn.on_connect.append(lambda: self._on_connect(host))
-            conn.on_disconnect.append(lambda: self._on_disconnect(conn))
-            asyncio.get_event_loop().create_task(conn.run())
-            # conn.set_host_port(host, port)
+        if best_peer is None:
+            return
+
+        host = best_peer.host
+        port = best_peer.port
+        onion = False
+        try:
+            dst_host = net.ipv6(host)
+        except ValueError:
+            if host[:6] == b'\xfd\x87\xd8\x7e\xeb\x43':
+                onion = True
+                if self._core.get_config('network.proxy') != 'tor':
+                    # logger.debug(
+                    #     'Skipping onion peer in direct connection mode')
+                    return
+                dst_host = '{}.onion'.format(
+                    base64.b32encode(host[6:]).lower().decode())
+            else:
+                logger.warning('Bad onion: %s', binascii.hexlify(host))
+                return
+
+        logger.info('trying %s %s', dst_host, port)
+        best_peer.set_pending()
+        c = PacketConnection(net.Connection(dst_host, port))
+        conn = Connection2(om=self.om, peers=self, connection=c)
+        self._connections.append(conn)
+        conn.on_connect.append(lambda: self._on_connect(
+            dst_host if onion else host))
+        conn.on_disconnect.append(lambda: self._on_disconnect(conn))
+        asyncio.get_event_loop().create_task(conn.run())
+        # conn.set_host_port(host, port)
 
     def count_all(self):
         return len(self._peers)
@@ -381,7 +457,6 @@ class Connection2():
             for func in self.on_disconnect:
                 func()
             return
-        logger.info('connected %s', ipaddress.ip_address(self.remote_host))
         self._c.send_packet(packet.Version(
             version=3,
             services=1,
@@ -464,4 +539,3 @@ class Connection2():
     def set_disconnected(self):
         for func in self.on_disconnect:
             func()
-        logger.info('disconnected %s', ipaddress.ip_address(self.remote_host))

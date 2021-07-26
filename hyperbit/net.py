@@ -27,7 +27,9 @@ class Connection():
             return True
 
         self._s = socket.socket()
-        if self.remote_host.ipv4_mapped:
+        if isinstance(self.remote_host, str):
+            host = self.remote_host
+        elif self.remote_host.ipv4_mapped:
             host = ipaddress.IPv4Address(
                 self.remote_host.packed[-4:]).compressed
         else:

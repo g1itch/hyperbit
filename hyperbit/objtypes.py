@@ -11,6 +11,37 @@ class Type(enum.IntEnum):
     pubkey = 1
     msg = 2
     broadcast = 3
+    onionpeer = 0x746f72
+
+
+class Onionpeer():
+    def __init__(self, stream, version, host, port):
+        self.stream = stream
+        self.version = version
+        self.host = host
+        self.port = port
+
+    @classmethod
+    def from_bytes(cls, data):
+        s = serialize.Deserializer(data)
+        # this is strange, looks like a bug in PyBitmessage
+        data = s.bytes(2)
+        if data == b'\xfd\x20':
+            version = 3
+        else:
+            version = 2
+        # this is not gonna work before the bug is got fixed
+        # port = int.from_bytes(data, 'little', signed=False)
+        port = 8444
+        stream = 1
+        host = s.vbytes()
+        return cls(stream, version, host, port)
+
+    def to_bytes(self):
+        s = serialize.Serializer()
+        s.data += self.port.to_bytes(self.version, 'little', signed=False)
+        s.vbytes(self.host)
+        return s.data
 
 
 class Getpubkey23():
