@@ -4,7 +4,6 @@
 import asyncio
 import ipaddress
 import logging
-import os
 import socket
 import time
 
@@ -89,7 +88,7 @@ class PeerManager():
 
         self.om = inv
         self.client_nonce = int.from_bytes(
-            os.urandom(8), byteorder='big', signed=False)
+            crypto.urandom(8), byteorder='big', signed=False)
         self.on_add_peer = []
         self.on_stats_changed = []
 
