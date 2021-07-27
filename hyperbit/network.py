@@ -12,6 +12,12 @@ try:
 except ImportError:
     socks = None
 
+try:
+    import aioupnp
+    from aioupnp.upnp import UPnP
+except ImportError:
+    UPnP = None
+
 from hyperbit import config, crypto, net, packet, __version__
 
 logger = logging.getLogger(__name__)
@@ -101,9 +107,13 @@ class PeerManager():
             self.new_peer(0, 1, peer[0], peer[1], False)
 
     def send_inv(self, obj):
+        closed = []
         for conn in self._connections:
             if conn.got_version:
-                conn.send_inv(obj)
+                if conn.send_inv(obj) is False:
+                    closed.append(conn)
+        for conn in closed:
+            self._on_disconnect(conn)
 
     def get_best_peer(self):
         for host, in self._db.execute(
@@ -165,7 +175,7 @@ class PeerManager():
                 socket.socket = socks.socksocket
         elif self._core.get_config('network.proxy') == 'disabled':
             logger.info('connecting directly to the internet')
-            asyncio.get_event_loop().create_task(self._run2())
+            asyncio.get_event_loop().create_task(self._run_inbound())
         if self._core.get_config('network.proxy') == 'trusted':
             logger.info('connecting to trusted peer')
             while True:
@@ -203,12 +213,26 @@ class PeerManager():
                     self._open_one()
                 yield from asyncio.sleep(10)
 
-    @asyncio.coroutine
-    def _run2(self):
-        listener = net.Listener(self._core.get_config('network.listen_port'))
+    async def _run_inbound(self):
+        port = self._core.get_config('network.listen_port')
+        listener = net.Listener(port)
         listener.listen()
+
+        if UPnP:
+            try:
+                upnp = await UPnP.discover()
+            except aioupnp.fault.UPnPError:
+                logger.warning('UPnP is not available')
+            else:
+                ext_ip = await upnp.get_external_ip()
+                logging.info('External IP is %s', ext_ip)
+                await upnp.add_port_mapping(
+                    port, 'TCP', port, upnp.lan_address, 'HyperBit bitmessage')
+
         while True:
-            connection = yield from listener.accept()
+            connection = await listener.accept()
+            if not connection:
+                continue
             self.new_peer(
                 int(time.time()), 1,
                 connection.remote_host.packed, connection.remote_port)
@@ -218,16 +242,23 @@ class PeerManager():
             conn.on_connect.append(
                 lambda: self._on_connect(connection.remote_host.packed))
             conn.on_disconnect.append(
-                lambda: self._on_disconnect(connection.remote_host.packed))
+                lambda: self._on_disconnect(conn))
             asyncio.get_event_loop().create_task(conn.run())
+        await upnp.delete_port_mapping(port, 'TCP')
 
     def _on_connect(self, host):
         self._peers[host].set_connected()
         for func in self.on_stats_changed:
             func()
 
-    def _on_disconnect(self, host):
-        self._peers[host].set_disconnected()
+    def _on_disconnect(self, conn):
+        self._connections.remove(conn)
+        host = ipaddress.ip_address(conn.remote_host)
+        logger.info('disconnected %s', host)
+        try:
+            self._peers[conn.remote_host.packed].set_disconnected()
+        except KeyError:  # should be trusted peer
+            logger.warning('No such peer %s', host)
         for func in self.on_stats_changed:
             func()
 
@@ -242,7 +273,7 @@ class PeerManager():
             conn = Connection2(om=self.om, peers=self, connection=c)
             self._connections.append(conn)
             conn.on_connect.append(lambda: self._on_connect(host))
-            conn.on_disconnect.append(lambda: self._on_disconnect(host))
+            conn.on_disconnect.append(lambda: self._on_disconnect(conn))
             asyncio.get_event_loop().create_task(conn.run())
             # conn.set_host_port(host, port)
 
@@ -279,8 +310,9 @@ class PacketConnection():
         length = len(payloaddata)
         checksum = crypto.sha512(payloaddata)[:4]
         header = packet.Header(magic, command, length, checksum)
-        self._c.send(header.to_bytes())
-        self._c.send(payloaddata)
+        return (
+            self._c.send(header.to_bytes())
+            and self._c.send(payloaddata))
 
     @asyncio.coroutine
     def recv_packet(self):
@@ -318,7 +350,7 @@ class Connection2():
         self.inbound = connection._c.inbound
 
     def send_inv(self, obj):
-        self._c.send_packet(packet.Inv(
+        return self._c.send_packet(packet.Inv(
             hashes=[obj.hash]
         ))
 
@@ -348,7 +380,7 @@ class Connection2():
             for func in self.on_disconnect:
                 func()
             return
-        logger.info('connected')
+        logger.info('connected %s', ipaddress.ip_address(self.remote_host))
         self._c.send_packet(packet.Version(
             version=3,
             services=1,
@@ -367,8 +399,11 @@ class Connection2():
         while generic:
             if not self.got_version:
                 if generic.command == 'version':
-                    yield from self.handle_version(
-                        packet.Version.from_bytes(generic.data))
+                    try:
+                        yield from self.handle_version(
+                            packet.Version.from_bytes(generic.data))
+                    except AssertionError:
+                        return
             if not self.got_verack:
                 if generic.command == 'verack':
                     packet.Verack.from_bytes(generic.data)
@@ -394,7 +429,8 @@ class Connection2():
                     if new_hashes > 0:
                         logger.info(
                             'send getdata for %s hashes', new_hashes)
-                        self._c.send_packet(getdata)
+                        if self._c.send_packet(getdata) is False:
+                            break
                 elif generic.command == 'getdata':
                     getdata = packet.Getdata.from_bytes(generic.data)
                     logger.info(
@@ -402,15 +438,27 @@ class Connection2():
                     for invhash in getdata.hashes:
                         obj = self.om.get_object(invhash)
                         if obj is not None:
-                            self._c.send_packet(obj)
+                            if self._c.send_packet(obj) is False:
+                                self.set_disconnected()
+                                return
                             yield
                 elif generic.command == 'object':
                     obj = packet.Object.from_bytes(generic.data)
                     self.om.add_object(obj)
-            generic = yield from self._c.recv_packet()
+                elif generic.command == 'ping':
+                    self._c.send_packet(packet.Generic('pong', b''))
+                else:
+                    logger.warning('unsuitable command %s', generic.command)
+                # FIXME: there is a possibility for unknown command
+                # before fully_established
+            try:
+                generic = yield from self._c.recv_packet()
+            except OSError:
+                logger.warning('OSError in connection loop', exc_info=True)
+                break
 
+        self.set_disconnected()
+
+    def set_disconnected(self):
         for func in self.on_disconnect:
             func()
-        logger.info('disconnected')
-
-        self.peers._connections.remove(self)
