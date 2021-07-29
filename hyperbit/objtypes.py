@@ -34,6 +34,9 @@ class Onionpeer():
         # port = int.from_bytes(data, 'little', signed=False)
         port = 8444
         stream = 1
+        # version = s.vint()
+        # stream = s.vint()
+        # port = s.vint()
         host = s.vbytes()
         return cls(stream, version, host, port)
 
