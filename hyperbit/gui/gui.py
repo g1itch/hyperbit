@@ -60,6 +60,15 @@ class ChannelsTab(QSplitter):
         self.comboTo.setModel(self._channelModel)
         self.channels_send.clicked.connect(self._on_channel_send_clicked)
         self.buttonNewUser.clicked.connect(self._create_new_user)
+        self.set_mood.clicked.connect(self._set_mood)
+        self.salt_entry.hide()
+        self.set_mood.hide()
+
+    def _set_mood(self):
+        token = self.salt_entry.text().strip()
+        if len(token) == 0:
+            return
+        self._core.set_config('ui.token', token)
 
     def _on_channel_join_clicked(self):
         dialog = JoinChannel(self)
@@ -175,7 +184,9 @@ class MessagesTab(QSplitter):
                 blockFormat.setBottomMargin(3.0)
                 blockFormat.setBackground(QColor(0xdd, 0xdd, 0xdd))
                 cursor.insertBlock(blockFormat, charFormat)
-                cursor.insertImage(identicon.get(comment.creator, 8).toImage())
+                cursor.insertImage(identicon.get(
+                    comment.creator, 8, token=self._core.get_config('ui.token')
+                ).toImage())
                 cursor.setCharFormat(charFormat)
                 if comment.creator:
                     address = wallet.Address.from_bytes(comment.creator)
