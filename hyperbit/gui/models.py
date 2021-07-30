@@ -47,9 +47,13 @@ class ConnectionModel(QAbstractTableModel):
             if column == 1:
                 return connection.remote_user_agent
             if column == 2:
-                return time.strftime('%x, %X', time.localtime(
-                    connection.peers._peers[
-                        connection.remote_host.packed].timestamp))
+                try:
+                    timestamp = connection.peers._peers[
+                        connection.remote_host.packed].timestamp
+                except KeyError:
+                    return ''
+                return time.strftime(
+                    '%x, %X', time.localtime(timestamp))
         if role == Qt.BackgroundRole:
             return QColor("green" if connection.inbound else "yellow")
 
