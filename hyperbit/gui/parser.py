@@ -8,6 +8,17 @@ try:
 except ImportError:
     clean = None
 
+try:
+    import markdown
+    import pkg_resources
+except ImportError:
+    md = None
+else:
+    md_extensions = [
+        ep.name for ep
+        in pkg_resources.iter_entry_points('markdown.extensions')]
+    md = markdown.Markdown(extensions=md_extensions)
+
 
 class SimpleHtmlParser(HTMLParser):
     """This is solely for HTML detection."""
@@ -62,11 +73,15 @@ class MessageCleaner():
             parser = SimpleHtmlParser()
             parser.feed(text)
             if not parser.has_html:
-                return text
+                if not md:
+                    return text
+                self.html = True
+                return md.reset().convert(text)
+                # parser.feed(text)
+                # self.html = parser.has_html
 
         try:
             self.html = True
             return self.cleaner.clean_html(text)
         except lxml.etree.ParserError:
-            # print('empty html!')
             return ''
