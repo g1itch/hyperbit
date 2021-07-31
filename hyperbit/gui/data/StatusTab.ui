@@ -14,43 +14,62 @@
    <property name="fieldGrowthPolicy">
     <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
    </property>
+   <item row="1" column="1">
+     <widget class="QTableView" name="tableView">
+       <attribute name="horizontalHeaderHighlightSections">
+         <bool>false</bool>
+       </attribute>
+       <property name="alternatingRowColors">
+         <bool>true</bool>
+       </property>
+       <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectRows</enum>
+       </property>
+       <property name="sortingEnabled">
+         <bool>true</bool>
+       </property>
+     </widget>
+   </item>
    <item row="2" column="0">
-    <widget class="QLabel" name="label_2">
+    <widget class="QRadioButton" name="connections_button">
      <property name="text">
-      <string>Objects:</string>
+      <string>Connections:</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
      </property>
     </widget>
    </item>
    <item row="2" column="1">
-    <widget class="QLabel" name="objects">
+    <widget class="QLabel" name="connections">
      <property name="text">
       <string>?</string>
      </property>
     </widget>
    </item>
    <item row="3" column="0">
-    <widget class="QLabel" name="label_4">
+    <widget class="QRadioButton" name="objects_button">
      <property name="text">
-      <string>Known Peers:</string>
+      <string>Objects:</string>
      </property>
     </widget>
    </item>
    <item row="3" column="1">
-    <widget class="QLabel" name="peers">
+    <widget class="QLabel" name="objects">
      <property name="text">
       <string>?</string>
      </property>
     </widget>
    </item>
    <item row="4" column="0">
-    <widget class="QLabel" name="label">
+    <widget class="QLabel" name="label_4">
      <property name="text">
-      <string>Connections:</string>
+      <string>Known Peers:</string>
      </property>
     </widget>
    </item>
    <item row="4" column="1">
-    <widget class="QLabel" name="connections">
+    <widget class="QLabel" name="peers">
      <property name="text">
       <string>?</string>
      </property>
@@ -97,5 +116,12 @@
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+ <connection>
+   <sender>connections_button</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>debugInfo</receiver>
+   <slot>show_connections(bool)</slot>
+  </connection>
+ </connections>
 </ui>

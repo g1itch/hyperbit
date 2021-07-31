@@ -164,7 +164,7 @@ class Wallet():
             if isinstance(identity.type, str):
                 identity.type = (
                     1 if self.names.get(
-                        identity.profile.address.ripe)[0:6] == '[chan]'
+                        identity.address.ripe)[0:6] == '[chan]'
                     else 0)
 
     def new_deterministic(self, name, type, text):
@@ -199,16 +199,17 @@ class Wallet():
 
     @property
     def identities(self):
-        identities = []
-        for address, in self._db.execute('SELECT address FROM identities'):
-            identities.append(Identity2(self._db, Address.from_bytes(address)))
+        identities = sorted((
+            Identity2(self._db, Address.from_bytes(address))
+            for address, in self._db.execute('SELECT address FROM identities')
+            ), key=lambda e: e.type)
         return identities
 
     @property
     def profiles(self):
-        profiles = []
-        for address, in self._db.execute('SELECT address FROM profiles'):
-            profiles.append(Profile2(self._db, Address.from_bytes(address)))
+        profiles = (
+            Profile2(self._db, Address.from_bytes(address))
+            for address, in self._db.execute('SELECT address FROM profiles'))
         return profiles
 
     def remove_identity(self, identity):

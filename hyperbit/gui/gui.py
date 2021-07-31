@@ -7,15 +7,18 @@ from PyQt5 import uic
 import os.path
 import sys
 
+import pkg_resources
+
 from hyperbit import base58, objtypes, wallet
-from hyperbit.gui import models, identicon
+from hyperbit.gui import models, identicon, parser
 
 
 def resource_path(path):
     try:
         return os.path.join(sys._MEIPASS, path)
-    except:
-        return os.path.join(os.path.dirname(__file__), path)
+    except AttributeError:
+        return pkg_resources.resource_filename(__name__, path)
+        # return os.path.join(os.path.dirname(__file__), path)
 
 
 class NetworkConfigDialog(QDialog):
@@ -57,6 +60,15 @@ class ChannelsTab(QSplitter):
         self.comboTo.setModel(self._channelModel)
         self.channels_send.clicked.connect(self._on_channel_send_clicked)
         self.buttonNewUser.clicked.connect(self._create_new_user)
+        self.set_mood.clicked.connect(self._set_mood)
+        self.salt_entry.hide()
+        self.set_mood.hide()
+
+    def _set_mood(self):
+        token = self.salt_entry.text().strip()
+        if len(token) == 0:
+            return
+        self._core.set_config('ui.token', token)
 
     def _on_channel_join_clicked(self):
         dialog = JoinChannel(self)
@@ -132,6 +144,8 @@ class MessagesTab(QSplitter):
 
         self.messages_reply.clicked.connect(self._on_messages_reply_clicked)
 
+        self.cleaner = parser.MessageCleaner()
+
     def _on_threads_context_menu_event(self, event):
         row = self.threads.indexAt(event.pos()).row()
         if row < 0:
@@ -161,7 +175,7 @@ class MessagesTab(QSplitter):
             format.setFontWeight(QFont.Bold)
             format.setFontPointSize(14)
             cursor.setCharFormat(format)
-            first = True
+
             cursor.insertText(thread.subject.strip())
             for comment in thread.comments:
                 charFormat = QTextCharFormat()
@@ -170,7 +184,9 @@ class MessagesTab(QSplitter):
                 blockFormat.setBottomMargin(3.0)
                 blockFormat.setBackground(QColor(0xdd, 0xdd, 0xdd))
                 cursor.insertBlock(blockFormat, charFormat)
-                cursor.insertImage(identicon.get(comment.creator, 8).toImage())
+                cursor.insertImage(identicon.get(
+                    comment.creator, 8, token=self._core.get_config('ui.token')
+                ).toImage())
                 cursor.setCharFormat(charFormat)
                 if comment.creator:
                     address = wallet.Address.from_bytes(comment.creator)
@@ -181,8 +197,13 @@ class MessagesTab(QSplitter):
                 blockFormat.setTopMargin(3.0)
                 blockFormat.setBottomMargin(3.0)
                 cursor.insertBlock(blockFormat, charFormat)
-                cursor.insertText(comment.text.strip())
-                first = False
+                text = comment.text.strip()
+
+                clean = self.cleaner.clean_html(text)
+
+                (cursor.insertHtml if self.cleaner.html
+                    else cursor.insertText)(clean)
+
             thread.unread = 0
 
     def _on_messages_reply_clicked(self):
@@ -240,6 +261,31 @@ class StatusTab(QWidget):
                 '\n'
                 'Please join the hyperbit channel'))
         self.aboutQt.clicked.connect(lambda: QMessageBox.aboutQt(self))
+
+        self.show_connections()
+
+    def show_connections(self, connections=True):
+        if connections is True:
+            model = models.ConnectionModel(self._core.peers)
+            proxyModel = QSortFilterProxyModel()
+            proxyModel.setSourceModel(model)
+            self.tableView.setModel(proxyModel)
+
+        # common resizing rule
+        header = self.tableView.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(0, QHeaderView.Stretch)
+
+        header.setSortIndicator(2, Qt.DescendingOrder)
+
+        if connections:
+            header.setSortIndicator(2, Qt.AscendingOrder)
+            return
+
+        model = models.ObjectModel(self._core.inv)
+        proxyModel = QSortFilterProxyModel()
+        proxyModel.setSourceModel(model)
+        self.tableView.setModel(proxyModel)
 
     def on_stats_changed(self):
         self.objects.setText(str(self._core.inv.count()))

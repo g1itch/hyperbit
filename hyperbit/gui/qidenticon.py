@@ -58,7 +58,7 @@ class IdenticonRendererBase(object):
             code = int(code)
         self.code = code
 
-    def render(self, size, twoColor, opacity, penwidth):
+    def render(self, size, twoColor, grayscale, opacity, penwidth):
         """
         render identicon to QPicture
 
@@ -77,6 +77,10 @@ class IdenticonRendererBase(object):
         # fill background
         backColor = QtGui.QColor(255, 255, 255, opacity)
         image.fill(backColor)
+
+        if grayscale:
+            foreColor.setHsv(0, 0, foreColor.value())
+            secondColor.setHsv(0, 0, secondColor.value())
 
         kwds = {
             'image': image,
@@ -267,8 +271,9 @@ class DonRenderer(IdenticonRendererBase):
 
 
 def render_identicon(
-        code, size, twoColor=False, opacity=255, penwidth=0, renderer=None):
+        code, size, twoColor=False, grayscale=False,
+        opacity=255, penwidth=0, renderer=None):
     """Render an image"""
     if not renderer:
         renderer = DonRenderer
-    return renderer(code).render(size, twoColor, opacity, penwidth)
+    return renderer(code).render(size, twoColor, grayscale, opacity, penwidth)
