@@ -3,6 +3,7 @@
 
 import hashlib
 import os
+from typing import Tuple
 
 from cryptography.hazmat.backends import openssl
 from cryptography.hazmat.primitives import hashes, padding
@@ -13,7 +14,7 @@ from cryptography.hazmat.primitives.hmac import HMAC
 from hyperbit import serialize
 
 
-def _point_multiply(priv, curve=ec.SECP256K1()):
+def _point_multiply(priv: bytes, curve=ec.SECP256K1()) -> Tuple[int, int]:
     b = openssl.backend
     with b._tmp_bn_ctx() as ctx:
         curve_nid = b._elliptic_curve_to_nid(curve)
@@ -50,13 +51,13 @@ def _pub_to_public(pubkey):
     return public_numbers.public_key(openssl.backend)
 
 
-def gen_priv():
+def gen_priv() -> bytes:
     """Generate a cryptographically secure random private key."""
     k = ec.generate_private_key(ec.SECP256K1(), openssl.backend)
     return k.private_numbers().private_value.to_bytes(32, 'big')
 
 
-def priv_to_pub(privkey):
+def priv_to_pub(privkey: bytes) -> bytes:
     """Convert a private key to the corresponding public key."""
     assert len(privkey) == 32
     x, y = _point_multiply(int.from_bytes(privkey, 'big'))
@@ -179,7 +180,7 @@ def urandom(size):
     return os.urandom(size)
 
 
-def randint(minimum, maximum):
+def randint(minimum: int, maximum: int) -> int:
     """
     Return a cryptographically secure number
     between minimum and maximum (inclusive).
