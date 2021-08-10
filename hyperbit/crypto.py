@@ -4,6 +4,7 @@
 
 import hashlib
 import os
+from typing import Tuple
 
 from cryptography.hazmat.backends import openssl
 from cryptography.hazmat.primitives import hashes, padding
@@ -14,7 +15,7 @@ from cryptography.hazmat.primitives.hmac import HMAC
 from hyperbit import serialize
 
 
-def _point_multiply(priv, curve=ec.SECP256K1()):
+def _point_multiply(priv: bytes, curve=ec.SECP256K1()) -> Tuple[int, int]:
     b = openssl.backend
     with b._tmp_bn_ctx() as ctx:
         curve_nid = b._elliptic_curve_to_nid(curve)
@@ -51,7 +52,7 @@ def _pub_to_public(pubkey):
     return public_numbers.public_key(openssl.backend)
 
 
-def gen_priv():
+def gen_priv() -> bytes:
     """Generate a cryptographically secure random private key."""
     k = ec.generate_private_key(ec.SECP256K1(), openssl.backend)
     return k.private_numbers().private_value.to_bytes(32, 'big')
@@ -75,14 +76,14 @@ def gen_deterministic(text):
             return sigkey, deckey
 
 
-def priv_to_pub(privkey):
+def priv_to_pub(privkey: bytes) -> bytes:
     """Convert a private key to the corresponding public key."""
     assert len(privkey) == 32
     x, y = _point_multiply(int.from_bytes(privkey, 'big'))
     return x.to_bytes(32, 'big') + y.to_bytes(32, 'big')
 
 
-def encrypt(pubkey, data):
+def encrypt(pubkey: bytes, data: bytes) -> bytes:
     """Encrypt a message with a public key."""
     public_key = _pub_to_public(pubkey)
     private_key = ec.generate_private_key(ec.SECP256K1(), openssl.backend)
@@ -114,7 +115,7 @@ def encrypt(pubkey, data):
     return s.data
 
 
-def decrypt(privkey, data):
+def decrypt(privkey: bytes, data: bytes) -> bytes:
     """Decrypt a message with a private key."""
     s = serialize.Deserializer(data)
     iv = s.bytes(16)
@@ -148,7 +149,7 @@ def decrypt(privkey, data):
     return unpadder.update(padded) + unpadder.finalize()
 
 
-def verify(pubkey, data, signature):
+def verify(pubkey: bytes, data: bytes, signature: bytes) -> None:
     """Verify a signature of a message using a public key."""
     public_key = _pub_to_public(pubkey)
     try:
@@ -161,7 +162,7 @@ def verify(pubkey, data, signature):
     # verifier.verify()
 
 
-def sign(privkey, data):
+def sign(privkey: bytes, data: bytes) -> bytes:
     """Sign a message with a private key."""
     private_key = _priv_to_private(privkey)
     signer = private_key.signer(ec.ECDSA(hashes.SHA256()))
@@ -169,34 +170,34 @@ def sign(privkey, data):
     return signer.finalize()
 
 
-def _bm160(data):
+def _bm160(data: bytes) -> bytes:
     sha = hashlib.sha512(data).digest()
     return hashlib.new('ripemd160', sha).digest()
 
 
-def sha256d(data):
+def sha256d(data: bytes) -> bytes:
     """Compute the Double SHA-256 hash."""
     sha = hashlib.sha256(data).digest()
     return hashlib.sha256(sha).digest()
 
 
-def sha512(data):
+def sha512(data: bytes) -> bytes:
     """Compute the SHA-512 hash."""
     return hashlib.sha512(data).digest()
 
 
-def sha512d(data):
+def sha512d(data: bytes) -> bytes:
     """Compute the Double SHA-512 hash."""
     sha = hashlib.sha512(data).digest()
     return hashlib.sha512(sha).digest()
 
 
-def urandom(size):
+def urandom(size: int) -> bytes:
     """Return a number of cryptographically secure random bytes."""
     return os.urandom(size)
 
 
-def randint(minimum, maximum):
+def randint(minimum: int, maximum: int) -> int:
     """
     Return a cryptographically secure number
     between minimum and maximum (inclusive).
@@ -208,7 +209,7 @@ def randint(minimum, maximum):
     return minimum + random % count
 
 
-def to_ripe(verkey, enckey):
+def to_ripe(verkey: bytes, enckey: bytes) -> bytes:
     """Convert two public keys to a ripe hash."""
     assert len(verkey) == 64
     assert len(enckey) == 64
