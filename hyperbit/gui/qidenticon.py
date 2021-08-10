@@ -33,10 +33,10 @@
 Usage
 -----
 
->>> import qtidenticon
->>> qtidenticon.render_identicon(code, size)
+>>> import qidenticon
+>>> qidenticon.render_identicon(code, size)
 
-Return a PIL Image class instance which have generated identicon image.
+Returns an instance of :class:`QPixmap` which have generated identicon image.
 ``size`` specifies `patch size`. Generated image size is 3 * ``size``.
 """
 
@@ -60,10 +60,10 @@ class IdenticonRendererBase(object):
 
     def render(self, size, twoColor, grayscale, opacity, penwidth):
         """
-        render identicon to QPicture
+        render identicon to QPixmap
 
         :param size: identicon patchsize. (image size is 3 * [size])
-        :returns: :class:`QPicture`
+        :returns: :class:`QPixmap`
         """
 
         # decode the code
@@ -172,7 +172,7 @@ class IdenticonRendererBase(object):
 class DonRenderer(IdenticonRendererBase):
     """
     Don Park's implementation of identicon, see:
-    https://blog.docuverse.com/2007/01/18/identicon-updated-and-source-released/
+    https://blog.docuverse.com/2007/01/18/identicon-updated-and-source-released
     """
 
     PATH_SET = [
