@@ -131,17 +131,15 @@ def decrypt(privkey, data):
 
 def verify(pubkey, data, signature):
     """Verify a signature of a message using a public key."""
+    public_key = _pub_to_public(pubkey)
     try:
-        public_key = _pub_to_public(pubkey)
-        verifier = public_key.verifier(signature, ec.ECDSA(hashes.SHA256()))
-        verifier.update(data)
-        verifier.verify()
-    except Exception:  # TODO: exception type
+        public_key.verify(signature, data, ec.ECDSA(hashes.SHA256()))
+    except openssl.ec.InvalidSignature:
         # Also support SHA1 signatures as they're still seen in the wild
-        public_key = _pub_to_public(pubkey)
-        verifier = public_key.verifier(signature, ec.ECDSA(hashes.SHA1()))
-        verifier.update(data)
-        verifier.verify()
+        public_key.verify(signature, data, ec.ECDSA(hashes.SHA1()))
+    # verifier = public_key.verifier(signature, ec.ECDSA(hashes.SHA256()))
+    # verifier.update(data)
+    # verifier.verify()
 
 
 def sign(privkey, data):
