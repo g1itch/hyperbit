@@ -1,5 +1,6 @@
 # Copyright 2015-2016 HyperBit developers
-# pylint: disable=too-many-locals
+# pylint: disable=too-many-locals,protected-access
+"""Common cryptographic functions."""
 
 import hashlib
 import os
